@@ -6,8 +6,8 @@ int main() {
   using Zero = IntConst<0>;
   using One = IntConst<1>;
   
-  static_assert(Eval<Zero, EmptyEnv> == 0);
-  static_assert(Eval<One, EmptyEnv> == 1);
+  static_assert(Eval_v<Zero, EmptyEnv> == 0);
+  static_assert(Eval_v<One, EmptyEnv> == 1);
 
   using Var0 = Var<0>;
   using Var1 = Var<1>;
@@ -18,13 +18,13 @@ int main() {
   using TestEnv1 = Env<Binding<Var0, MinusOne>,
                        Binding<Var1, MinusTwo>,
                        Binding<Var2, MinusThree>>;
-  static_assert(Eval<Var0, TestEnv1> == MinusOne::value);
-  static_assert(Eval<Var1, TestEnv1> == MinusTwo::value);
-  static_assert(Eval<Var2, TestEnv1> == MinusThree::value);
+  static_assert(Eval_v<Var0, TestEnv1> == MinusOne::value);
+  static_assert(Eval_v<Var1, TestEnv1> == MinusTwo::value);
+  static_assert(Eval_v<Var2, TestEnv1> == MinusThree::value);
 
   using TestIfExp1 = IfExp<Var0, Var1, Var2>;
-  static_assert(Eval<TestIfExp1, TestEnv1> == Lookup<Var1, TestEnv1>);
+  static_assert(Eval_v<TestIfExp1, TestEnv1> == Lookup_v<Var1, TestEnv1>);
 
   using TestIfExp2 = IfExp<Zero, Var1, Var2>;
-  static_assert(Eval<TestIfExp2, TestEnv1> == Lookup<Var2, TestEnv1>);
+  static_assert(Eval_v<TestIfExp2, TestEnv1> == Lookup_v<Var2, TestEnv1>);
 }
