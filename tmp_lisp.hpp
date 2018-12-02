@@ -21,10 +21,24 @@ namespace TmpLisp {
   struct Binding {};
   
   template<class ... Bindings>
-  struct Env;
-  
+  struct Env {};
+
   using EmptyEnv  = Env<>;
 
+  namespace detail {
+    template<class T0, class T1>
+    class Concat;
+
+    template<class ... Bindings1, class ... Bindings2>
+    class Concat<Env<Bindings1...>, Env<Bindings2...>>
+    {
+      using Result = Env<Bindings1..., Bindings2...>;
+    };
+  }
+
+  template<class Env1, class Env2>
+  using ExtendEnv_t = typename detail::Concat<Env1, Env2>::Result;
+  
   template<class Variable, class Env>
   struct Lookup;
 
@@ -35,6 +49,24 @@ namespace TmpLisp {
     static constexpr auto value = Result::value;
   };
 
+  template<class OperatorExp, class ... OperandExps>
+  struct ApplicationExp {};
+  
+  template<class Var>
+  struct Param;
+
+  template<int i>
+  struct Param<Var<i>>
+  {
+    using Varname = Var<i>;
+  };
+  
+  template<class Body, class Environment, class ... Params>
+  struct Lambda {
+    constexpr Lambda() = default;
+    static constexpr auto value = Lambda();
+  };
+  
   template<class T>
   using Result_t = typename T::Result;
   
@@ -52,11 +84,14 @@ namespace TmpLisp {
   using Lookup_t =  typename Lookup<Variable, Env>::Result;
 
   template<class Cond, class IfTrue, class IfFalse>
-  struct IfExp {
-    using Cond_t = Cond;
-    using IfTrue_t = IfTrue;
-    using IfFalse_t = IfFalse;
-  };
+  struct IfExp {};
+
+  template<class Operator, class ... Operands>
+  struct Apply;
+
+  /*****************
+        EVAL
+   *****************/
   
   template<class Exp, class Env>
   struct Eval;
@@ -116,6 +151,21 @@ namespace TmpLisp {
                                 IfFalse>,
                               Env>>;
     static constexpr auto value = Result::value;
+  };
+  
+  template<class Body, class LambdaEnv, class ... Params, class Env>
+  struct Eval<Lambda<Body, LambdaEnv, Params...>, Env>
+  {
+    using Result = Lambda<Body, ExtendEnv_t<LambdaEnv, Env>, Params...>;
+    static constexpr auto value = Result::value;
+  };
+
+  template<class OperatorExp, class ... OperandExps, class Env>
+  struct Eval<ApplicationExp<OperatorExp, OperandExps...>, Env>
+  {
+    using Result = typename Apply<Eval<OperatorExp, Env>,
+                                  Eval<OperandExps, Env>...>::Result;
+    static constexpr auto value = Result::Value;
   };
   
   template<class Exp, class Env>
