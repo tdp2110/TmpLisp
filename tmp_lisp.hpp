@@ -34,6 +34,9 @@ namespace TmpLisp {
   
   template<class Variable, class Env>
   constexpr auto Lookup =  LookupImpl<Variable, Env>::value;
+
+  template<class Cond, class IfTrue, class IfFalse>
+  struct IfExp {};
   
   template<class Exp, class Env>
   struct EvalImpl;
@@ -52,6 +55,16 @@ namespace TmpLisp {
     static constexpr auto value = Lookup<Variable, Env>;
   };
 
+  template<class Cond, class IfTrue, class IfFalse, class Env>
+  struct EvalImpl<IfExp<Cond, IfTrue, IfFalse>, Env>
+  {
+    using IfExprType = IfExp<Cond, IfTrue, IfFalse>;
+    static constexpr auto value =
+      EvalImpl<Cond, Env>::value ?
+      EvalImpl<IfTrue, Env>::value :
+      EvalImpl<IfFalse, Env>::value;      
+  };
+  
   template<class Exp, class Env>
   constexpr auto Eval = EvalImpl<Exp, Env>::value;
 } // namespace TmpLisp

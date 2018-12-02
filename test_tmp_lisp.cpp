@@ -21,4 +21,10 @@ int main() {
   static_assert(Eval<Var0, TestEnv1> == MinusOne::value);
   static_assert(Eval<Var1, TestEnv1> == MinusTwo::value);
   static_assert(Eval<Var2, TestEnv1> == MinusThree::value);
+
+  using TestIfExp1 = IfExp<Var0, Var1, Var2>;
+  static_assert(Eval<TestIfExp1, TestEnv1> == Lookup<Var1, TestEnv1>);
+
+  using TestIfExp2 = IfExp<Zero, Var1, Var2>;
+  static_assert(Eval<TestIfExp2, TestEnv1> == Lookup<Var2, TestEnv1>);
 }
