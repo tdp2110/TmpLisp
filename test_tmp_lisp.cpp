@@ -50,5 +50,6 @@ int main() {
                              Param<0>,
                              Param<2>>;
   using TestEnv2 = Env<Binding<Var3, Two>>;
-  Eval_v<ApplicationExp<TestLambda1, Var3, Three>, TestEnv2>;
+  static_assert(Eval_v<ApplicationExp<TestLambda1, Var3, Three>, TestEnv2> == 1);
+  static_assert(Eval_v<ApplicationExp<TestLambda1, False, Three>, TestEnv2> == 3);
 }

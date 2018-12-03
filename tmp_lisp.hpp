@@ -27,10 +27,10 @@ namespace TmpLisp {
 
   namespace detail {
     template<class T0, class T1>
-    class Concat;
+    struct Concat;
 
     template<class ... Bindings1, class ... Bindings2>
-    class Concat<Env<Bindings1...>, Env<Bindings2...>>
+    struct Concat<Env<Bindings1...>, Env<Bindings2...>>
     {
       using Result = Env<Bindings1..., Bindings2...>;
     };
@@ -82,7 +82,7 @@ namespace TmpLisp {
   template<class Body, class Environment, class ... Params>
   struct Lambda {
     constexpr Lambda() = default;
-    static constexpr auto value = Lambda();
+    static constexpr auto value = 1; //Lambda<Body, Environment, Params...>();
   };
   
   template<class T>
@@ -121,6 +121,13 @@ namespace TmpLisp {
     static constexpr auto value = Result::value;
   };
 
+  template<bool b, class Env>
+  struct Eval<BoolConst<b>, Env>
+  {
+    using Result = BoolConst<b>;
+    static constexpr auto value = Result::value;
+  };  
+  
   template<int i, class Env>
   struct Eval<Var<i>, Env>
   {
@@ -181,9 +188,9 @@ namespace TmpLisp {
   template<class OperatorExp, class ... OperandExps, class Env>
   struct Eval<ApplicationExp<OperatorExp, OperandExps...>, Env>
   {
-    using Result = typename Apply<Eval<OperatorExp, Env>,
-                                  Eval<OperandExps, Env>...>::Result;
-    static constexpr auto value = Result::Value;
+    using Result = typename Apply<typename Eval<OperatorExp, Env>::Result,
+                                  typename Eval<OperandExps, Env>::Result...>::Result;
+    static constexpr auto value = Result::value;
   };
   
   template<class Exp, class Env>
@@ -200,7 +207,7 @@ namespace TmpLisp {
                                     MakeEnv_t<detail::List<Params ...>,
                                               detail::List<Args ...>>>;
     using Result = typename Eval<BodyExp, ExtendedEnv>::Result;
-    static constexpr auto value = Result::Value;
+    static constexpr auto value = Result::value;
   };
   
 } // namespace TmpLisp
