@@ -80,10 +80,7 @@ namespace TmpLisp {
   using Param = Var<i>;
 
   template<class Body, class Environment, class ... Params>
-  struct Lambda {
-    constexpr Lambda() = default;
-    static constexpr auto value = 1; //Lambda<Body, Environment, Params...>();
-  };
+  struct Lambda {};
   
   template<class T>
   using Result_t = typename T::Result;
@@ -182,7 +179,7 @@ namespace TmpLisp {
   struct Eval<Lambda<Body, LambdaEnv, Params...>, Env>
   {
     using Result = Lambda<Body, ExtendEnv_t<LambdaEnv, Env>, Params...>;
-    static constexpr auto value = Result::value;
+    static constexpr auto value = Result();
   };
 
   template<class OperatorExp, class ... OperandExps, class Env>
