@@ -73,6 +73,17 @@ namespace TmpLisp {
     static constexpr auto value = Result::value;
   };
 
+  enum class OpCode
+  {
+    Add,
+    Sub,
+    Mul,
+    Eq,
+  };
+
+  template<OpCode op>
+  struct Op {};
+  
   template<class OperatorExp, class ... OperandExps>
   struct ApplicationExp {};
   
@@ -189,6 +200,14 @@ namespace TmpLisp {
                                   typename Eval<OperandExps, Env>::Result...>::Result;
     static constexpr auto value = Result::value;
   };
+
+  template<OpCode opcode, class ... OperandExps, class Env>
+  struct Eval<ApplicationExp<Op<opcode>, OperandExps...>, Env>
+  {
+    using Result = typename Apply<Op<opcode>,
+                                  typename Eval<OperandExps, Env>::Result...>::Result;
+    static constexpr auto value = Result::value;
+  };
   
   template<class Exp, class Env>
   constexpr auto Eval_v = Eval<Exp, Env>::value;
@@ -197,6 +216,34 @@ namespace TmpLisp {
         APPLY
    *****************/
 
+  template<int i1, int i2>
+  struct Apply<Op<OpCode::Add>, IntConst<i1>, IntConst<i2>>
+  {
+    using Result = IntConst<i1 + i2>;
+    static constexpr auto value = Result::value;
+  };
+  
+  template<int i1, int i2>
+  struct Apply<Op<OpCode::Sub>, IntConst<i1>, IntConst<i2>>
+  {
+    using Result = IntConst<i1 - i2>;
+    static constexpr auto value = Result::value;
+  };
+  
+  template<int i1, int i2>
+  struct Apply<Op<OpCode::Mul>, IntConst<i1>, IntConst<i2>>
+  {
+    using Result = IntConst<i1 * i2>;
+    static constexpr auto value = Result::value;
+  };
+  
+  template<int i1, int i2>
+  struct Apply<Op<OpCode::Eq>, IntConst<i1>, IntConst<i2>>
+  {
+    using Result = BoolConst<i1 == i2>;
+    static constexpr auto value = Result::value;
+  };
+  
   template<class BodyExp, class LambdaEnv, class ... Params, class ... Args>
   struct Apply<Lambda<BodyExp, LambdaEnv, Params...>, Args ...> {
     static_assert(sizeof...(Params) == sizeof...(Args));

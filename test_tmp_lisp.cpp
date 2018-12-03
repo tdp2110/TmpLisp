@@ -1,5 +1,7 @@
 #include "tmp_lisp.hpp"
 
+#include <type_traits>
+
 using namespace TmpLisp;
 
 int main() {
@@ -52,4 +54,20 @@ int main() {
   using TestEnv2 = Env<Binding<Var3, Two>>;
   static_assert(Eval_v<ApplicationExp<TestLambda1, Var3, Three>, TestEnv2> == 1);
   static_assert(Eval_v<ApplicationExp<TestLambda1, False, Three>, TestEnv2> == 3);
+
+  static_assert(Eval_v<
+                ApplicationExp<Op<OpCode::Add>, Var0, Var1>,
+                Env<Binding<Var0, One>,
+                Binding<Var1, Two>>> == 1 + 2);
+
+  static_assert(Eval_v<
+                ApplicationExp<Op<OpCode::Mul>, Two, Three>,
+                Env<>> == 2 * 3);
+
+  static_assert(std::is_same_v<
+                  Eval<
+                    ApplicationExp<Op<OpCode::Eq>, Two, Three>,
+                  Env<>>::Result,
+                  False>);
+
 }
