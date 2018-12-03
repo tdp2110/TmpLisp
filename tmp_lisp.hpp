@@ -64,6 +64,18 @@ template <class Variable, class Env> struct Lookup;
 TODO TRY NEXT: try extending the environment in the return value
 */
 
+template <class Value, class Environment> struct PushEnv {
+  using Result = Value;
+};
+
+template <class LambdaBody, class LambdaEnv, class... LambdaParams,
+          class Environment>
+struct PushEnv<Lambda<LambdaBody, LambdaEnv, LambdaParams...>, Environment> {
+  // using Result =
+  //     Lambda<LambdaBody, ExtendEnv_t<LambdaEnv, Environment>,
+  //     LambdaParams...>;
+};
+
 template <class Variable, class Value, class... Bindings>
 struct Lookup<Variable, Env<Binding<Variable, Value>, Bindings...>> {
   using Result = Value;
@@ -75,7 +87,8 @@ struct Lookup<Variable, Env<Binding0, Bindings...>> {
 };
 
 template <class Variable, class Env>
-using Lookup_t = typename Lookup<Variable, Env>::Result;
+using Lookup_t =
+    typename PushEnv<typename Lookup<Variable, Env>::Result, Env>::Result;
 
 template <class Variable, class Env>
 constexpr auto Lookup_v = Lookup_t<Variable, Env>::value;

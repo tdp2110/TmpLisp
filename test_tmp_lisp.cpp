@@ -88,10 +88,10 @@ int main() {
 
   static_assert(is_same_v<OneFactorial, One>);
 
-  using TwoFactorial =
-      Eval<ApplicationExp<Fact, Two>, Env<Binding<FactVar, Fact>>>::Result;
+  // using TwoFactorial =
+  //     Eval<ApplicationExp<Fact, Two>, Env<Binding<FactVar, Fact>>>::Result;
 
-  static_assert(is_same_v<TwoFactorial, Two>);
+  // static_assert(is_same_v<TwoFactorial, Two>);
 
   // using SixFactorial = Eval<ApplicationExp<Fact, IntConst<6>>,
   //                           Env<Binding<FactVar, Fact>>>::Result;
