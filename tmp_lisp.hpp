@@ -46,20 +46,7 @@ using MakeEnv_t = typename detail::MakeEnv<Variables, Values>::Result;
 template <class Env1, class Env2>
 using ExtendEnv_t = typename detail::Concat<Env1, Env2>::Result;
 
-template <class Variable, class Env> struct Lookup;
-
-template <class Variable, class Value, class... Bindings>
-struct Lookup<Variable, Env<Binding<Variable, Value>, Bindings...>> {
-  using Result = Value;
-  static constexpr auto value = Result::value;
-};
-
-enum class OpCode {
-  Add,
-  Sub,
-  Mul,
-  Eq,
-};
+enum class OpCode { Add, Sub, Mul, Eq, Leq };
 
 template <OpCode op> struct Op {};
 
@@ -71,17 +58,27 @@ template <class Body, class Environment, class... Params> struct Lambda {};
 
 template <class T> using Result_t = typename T::Result;
 
+template <class Variable, class Env> struct Lookup;
+
+/*
+TODO TRY NEXT: try extending the environment in the return value
+*/
+
+template <class Variable, class Value, class... Bindings>
+struct Lookup<Variable, Env<Binding<Variable, Value>, Bindings...>> {
+  using Result = Value;
+};
+
 template <class Variable, class Binding0, class... Bindings>
 struct Lookup<Variable, Env<Binding0, Bindings...>> {
   using Result = Result_t<Lookup<Variable, Env<Bindings...>>>;
-  static constexpr auto value = Result::value;
 };
 
 template <class Variable, class Env>
-constexpr auto Lookup_v = Lookup<Variable, Env>::value;
+using Lookup_t = typename Lookup<Variable, Env>::Result;
 
 template <class Variable, class Env>
-using Lookup_t = typename Lookup<Variable, Env>::Result;
+constexpr auto Lookup_v = Lookup_t<Variable, Env>::value;
 
 template <class Cond, class IfTrue, class IfFalse> struct IfExp {};
 
@@ -105,7 +102,6 @@ template <bool b, class Env> struct Eval<BoolConst<b>, Env> {
 
 template <int i, class Env> struct Eval<Var<i>, Env> {
   using Result = Lookup_t<Var<i>, Env>;
-  static constexpr auto value = Result::value;
 };
 
 template <class Cond, class IfTrue, class IfFalse, class Env>
@@ -164,7 +160,8 @@ struct Eval<ApplicationExp<Op<opcode>, OperandExps...>, Env> {
   static constexpr auto value = Result::value;
 };
 
-template <class Exp, class Env> constexpr auto Eval_v = Eval<Exp, Env>::value;
+template <class Exp, class Env> using Eval_r = Result_t<Eval<Exp, Env>>;
+template <class Exp, class Env> constexpr auto Eval_v = Eval_r<Exp, Env>::value;
 
 /*****************
       APPLY
@@ -191,6 +188,12 @@ struct Apply<Op<OpCode::Mul>, IntConst<i1>, IntConst<i2>> {
 template <int i1, int i2>
 struct Apply<Op<OpCode::Eq>, IntConst<i1>, IntConst<i2>> {
   using Result = BoolConst<i1 == i2>;
+  static constexpr auto value = Result::value;
+};
+
+template <int i1, int i2>
+struct Apply<Op<OpCode::Leq>, IntConst<i1>, IntConst<i2>> {
+  using Result = BoolConst<i1 <= i2>;
   static constexpr auto value = Result::value;
 };
 

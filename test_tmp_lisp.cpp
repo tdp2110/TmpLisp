@@ -67,4 +67,34 @@ int main() {
   static_assert(
       is_same_v<Eval<ApplicationExp<Op<OpCode::Eq>, Two, Three>, Env<>>::Result,
                 False>);
+
+  using TestFunc2 = Eval_r<Lambda<ApplicationExp<Op<OpCode::Add>, Var0, Var1>,
+                                  Env<Binding<Var0, One>>>,
+                           Env<Binding<Var1, Two>>>;
+  using TestFunc2CallValue = Eval_r<ApplicationExp<TestFunc2>, EmptyEnv>;
+  static_assert(is_same_v<TestFunc2CallValue, Three>);
+
+  using FactVar = Var<12345>;
+  using Fact =
+      Lambda<IfExp<ApplicationExp<Op<OpCode::Leq>, Var0, Zero>, One,
+                   ApplicationExp<
+                       Op<OpCode::Mul>, Var0,
+                       ApplicationExp<FactVar, ApplicationExp<Op<OpCode::Sub>,
+                                                              Var0, One>>>>,
+             EmptyEnv, Var0>;
+
+  using OneFactorial =
+      Eval<ApplicationExp<Fact, One>, Env<Binding<FactVar, Fact>>>::Result;
+
+  static_assert(is_same_v<OneFactorial, One>);
+
+  using TwoFactorial =
+      Eval<ApplicationExp<Fact, Two>, Env<Binding<FactVar, Fact>>>::Result;
+
+  static_assert(is_same_v<TwoFactorial, Two>);
+
+  // using SixFactorial = Eval<ApplicationExp<Fact, IntConst<6>>,
+  //                           Env<Binding<FactVar, Fact>>>::Result;
+
+  // static_assert(std::is_same<SixFactorial, IntConst<72>>);
 }
