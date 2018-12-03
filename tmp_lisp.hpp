@@ -34,7 +34,31 @@ namespace TmpLisp {
     {
       using Result = Env<Bindings1..., Bindings2...>;
     };
+
+    template<class ... Ts>
+    struct List {};
+    
+    template<class, class>
+    struct MakeEnv;
+
+    template<>
+    struct MakeEnv<List<>, List<>>
+    {
+      using Result = EmptyEnv;
+    };
+
+    template<class Variable, class ... Variables, class Value, class ... Values>
+    struct MakeEnv<List<Variable, Variables ...>, List<Value, Values ...>>
+    {
+      static_assert(sizeof...(Variables) == sizeof...(Values));
+      using InitialEnv = Env<Binding<Variable, Value>>;
+      using FinalEnv = typename MakeEnv<List<Variables...>, List<Values...>>::Result;
+      using Result = typename Concat<InitialEnv, FinalEnv>::Result;
+    };
   }
+
+  template<class Variables, class Values>
+  using MakeEnv_t = typename detail::MakeEnv<Variables, Values>::Result;
 
   template<class Env1, class Env2>
   using ExtendEnv_t = typename detail::Concat<Env1, Env2>::Result;
@@ -52,15 +76,9 @@ namespace TmpLisp {
   template<class OperatorExp, class ... OperandExps>
   struct ApplicationExp {};
   
-  template<class Var>
-  struct Param;
-
   template<int i>
-  struct Param<Var<i>>
-  {
-    using Varname = Var<i>;
-  };
-  
+  using Param = Var<i>;
+
   template<class Body, class Environment, class ... Params>
   struct Lambda {
     constexpr Lambda() = default;
@@ -170,4 +188,19 @@ namespace TmpLisp {
   
   template<class Exp, class Env>
   constexpr auto Eval_v = Eval<Exp, Env>::value;
+
+  /*****************
+        APPLY
+   *****************/
+
+  template<class BodyExp, class LambdaEnv, class ... Params, class ... Args>
+  struct Apply<Lambda<BodyExp, LambdaEnv, Params...>, Args ...> {
+    static_assert(sizeof...(Params) == sizeof...(Args));
+    using ExtendedEnv = ExtendEnv_t<LambdaEnv,
+                                    MakeEnv_t<detail::List<Params ...>,
+                                              detail::List<Args ...>>>;
+    using Result = typename Eval<BodyExp, ExtendedEnv>::Result;
+    static constexpr auto value = Result::Value;
+  };
+  
 } // namespace TmpLisp
