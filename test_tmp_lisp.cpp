@@ -5,6 +5,8 @@ using namespace TmpLisp;
 int main() {
   using Zero = IntConst<0>;
   using One = IntConst<1>;
+  using Two = IntConst<2>;
+  using Three = IntConst<3>;
   
   static_assert(Eval_v<Zero, EmptyEnv> == 0);
   static_assert(Eval_v<One, EmptyEnv> == 1);
@@ -42,4 +44,11 @@ int main() {
 
   using TestIfExp5 = IfExp<TestIfExp4, TestIfExp3, TestIfExp2>;
   static_assert(Eval_v<TestIfExp5, TestEnv1> == Eval_v<TestIfExp3, TestEnv1>);
+
+  using TestLambda1 = Lambda<IfExp<Var0, Var1, Var2>,
+                             Env<Binding<Var1, One>>,
+                             Param<0>,
+                             Param<2>>;
+  using TestEnv2 = Env<Binding<Var3, Two>>;
+  Eval_v<ApplicationExp<TestLambda1, Var3, Three>, TestEnv2>;
 }
