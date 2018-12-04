@@ -215,7 +215,7 @@ template <int i1, int i2> struct Apply<Op<OpCode::Leq>, Int<i1>, Int<i2>> {
 };
 
 template <int i> struct Apply<Op<OpCode::Neg>, Int<i>> {
-  using type = Bool<-i>;
+  using type = Int<-i>;
 };
 
 template <bool... bs> struct Apply<Op<OpCode::Eq>, Bool<bs>...> {
