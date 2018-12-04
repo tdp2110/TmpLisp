@@ -107,6 +107,38 @@ int main() {
    static_assert(is_same_v<SixFactorial, Int<720>>);
    
   /****************
+   Tail-recursive Fact
+   ****************/
+
+   using XParam = Var<54325>;
+   using AccumParam = Var<23424>;
+   using FactTailRecInner = Lambda<If<Application<Op<OpCode::Leq>, XParam, Int<0>>,
+                                      AccumParam,
+                                      Application<FactVar,
+                                                  Application<Op<OpCode::Sub>,
+                                                              XParam,
+                                                              Int<1>>,
+                                                  Application<Op<OpCode::Mul>,
+                                                              AccumParam,
+                                                              XParam>>
+                                      >,
+                                   EmptyEnv,
+                                   XParam,
+                                   AccumParam>;
+
+   static_assert(is_same_v<Eval_t<Application<FactTailRecInner, Int<5>, Int<1>>,
+                 Env<Binding<FactVar, FactTailRecInner>>>, Int<120>>);
+
+   using Arg = Var<44324>;
+   using FactInnerVar = Var<5646>;
+   using Fact2 = Lambda<Application<FactInnerVar, Arg, Int<1>>,
+                        Env<Binding<FactInnerVar, FactTailRecInner>,
+                            Binding<FactVar, FactTailRecInner>>,
+                        Arg>;
+
+   static_assert(is_same_v<Eval_t<Application<Fact2, Int<4>>, EmptyEnv>, Int<24>>);
+   
+  /****************
    Lists
    ****************/
 
