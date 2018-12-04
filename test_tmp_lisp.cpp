@@ -2,7 +2,6 @@
 
 #include <type_traits>
 
-using namespace TmpLisp;
 
 namespace {
 template <class T, class U>

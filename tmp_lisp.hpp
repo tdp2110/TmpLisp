@@ -1,6 +1,5 @@
 #pragma once
 
-namespace TmpLisp {
 template <bool b> struct BoolConst { };
 
 using True = BoolConst<true>;
@@ -199,5 +198,3 @@ struct Apply<Lambda<BodyExp, LambdaEnv, Params...>, Args...> {
                   MakeEnv_t<detail::List<Params...>, detail::List<Args...>>>;
   using Result = typename Eval<BodyExp, ExtendedEnv>::Result;
 };
-
-} // namespace TmpLisp
