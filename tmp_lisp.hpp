@@ -37,8 +37,7 @@ template <class Variable, class... Variables, class Value, class... Values>
 struct MakeEnv<List<Variable, Variables...>, List<Value, Values...>> {
   static_assert(sizeof...(Variables) == sizeof...(Values));
   using InitialEnv = Env<Binding<Variable, Value>>;
-  using FinalEnv =
-      typename MakeEnv<List<Variables...>, List<Values...>>::type;
+  using FinalEnv = typename MakeEnv<List<Variables...>, List<Values...>>::type;
   using type = typename Concat<InitialEnv, FinalEnv>::type;
 };
 } // namespace detail
@@ -49,7 +48,22 @@ using MakeEnv_t = typename detail::MakeEnv<Variables, Values>::type;
 template <class Env1, class Env2>
 using ExtendEnv_t = typename detail::Concat<Env2, Env1>::type;
 
-enum class OpCode { Add, Sub, Mul, Eq, Neq, Leq, Neg, Or, And, Not, Cons, Car, Cdr, IsNull };
+enum class OpCode {
+  Add,
+  Sub,
+  Mul,
+  Eq,
+  Neq,
+  Leq,
+  Neg,
+  Or,
+  And,
+  Not,
+  Cons,
+  Car,
+  Cdr,
+  IsNull
+};
 
 template <OpCode op> struct Op {};
 
@@ -70,9 +84,8 @@ template <class Value, class Environment> struct PushEnv {
 template <class LambdaBody, class LambdaEnv, class... LambdaParams,
           class Environment>
 struct PushEnv<Lambda<LambdaBody, LambdaEnv, LambdaParams...>, Environment> {
-   using type =
-       Lambda<LambdaBody, ExtendEnv_t<LambdaEnv, Environment>,
-       LambdaParams...>;
+  using type =
+      Lambda<LambdaBody, ExtendEnv_t<LambdaEnv, Environment>, LambdaParams...>;
 };
 
 template <class Variable, class Value, class... Bindings>
@@ -87,7 +100,7 @@ struct Lookup<Variable, Env<Binding0, Bindings...>> {
 
 template <class Variable, class Env>
 using Lookup_t =
-  typename PushEnv<typename Lookup<Variable, Env>::type, Env>::type;
+    typename PushEnv<typename Lookup<Variable, Env>::type, Env>::type;
 
 template <class Cond, class IfTrue, class IfFalse> struct If {};
 
@@ -99,9 +112,7 @@ template <class Operator, class... Operands> struct Apply;
 
 template <class Exp, class Env> struct Eval;
 
-template <int i, class Env> struct Eval<Int<i>, Env> {
-  using type = Int<i>;
-};
+template <int i, class Env> struct Eval<Int<i>, Env> { using type = Int<i>; };
 
 template <bool b, class Env> struct Eval<Bool<b>, Env> {
   using type = Bool<b>;
@@ -145,30 +156,23 @@ struct Eval<Lambda<Body, LambdaEnv, Params...>, Env> {
   using type = Lambda<Body, ExtendEnv_t<LambdaEnv, Env>, Params...>;
 };
 
-template <class Car, class Cdr, class Env>
-struct Eval<Cons<Car, Cdr>, Env>
-{
-  using type = Cons<typename Eval<Car, Env>::type,
-                    typename Eval<Cdr, Env>::type>;
+template <class Car, class Cdr, class Env> struct Eval<Cons<Car, Cdr>, Env> {
+  using type =
+      Cons<typename Eval<Car, Env>::type, typename Eval<Cdr, Env>::type>;
 };
 
-template <class Env> struct Eval<EmptyList, Env>
-{
-  using type = EmptyList;
-};
+template <class Env> struct Eval<EmptyList, Env> { using type = EmptyList; };
 
 template <class Operator, class... Operands, class Env>
 struct Eval<Application<Operator, Operands...>, Env> {
-  using type =
-      typename Apply<typename Eval<Operator, Env>::type,
-                     typename Eval<Operands, Env>::type...>::type;
+  using type = typename Apply<typename Eval<Operator, Env>::type,
+                              typename Eval<Operands, Env>::type...>::type;
 };
 
 template <OpCode opcode, class... Operands, class Env>
 struct Eval<Application<Op<opcode>, Operands...>, Env> {
   using type =
-      typename Apply<Op<opcode>,
-                     typename Eval<Operands, Env>::type...>::type;
+      typename Apply<Op<opcode>, typename Eval<Operands, Env>::type...>::type;
 };
 
 template <class Exp, class Env> using Eval_t = Result_t<Eval<Exp, Env>>;
@@ -177,90 +181,71 @@ template <class Exp, class Env> using Eval_t = Result_t<Eval<Exp, Env>>;
       APPLY
  *****************/
 
-template <int i1, int i2>
-struct Apply<Op<OpCode::Add>, Int<i1>, Int<i2>> {
+template <int i1, int i2> struct Apply<Op<OpCode::Add>, Int<i1>, Int<i2>> {
   using type = Int<i1 + i2>;
 };
 
-template <int i1, int i2>
-struct Apply<Op<OpCode::Sub>, Int<i1>, Int<i2>> {
+template <int i1, int i2> struct Apply<Op<OpCode::Sub>, Int<i1>, Int<i2>> {
   using type = Int<i1 - i2>;
 };
 
-template <int i1, int i2>
-struct Apply<Op<OpCode::Mul>, Int<i1>, Int<i2>> {
+template <int i1, int i2> struct Apply<Op<OpCode::Mul>, Int<i1>, Int<i2>> {
   using type = Int<i1 * i2>;
 };
 
-template <int i1, int i2>
-struct Apply<Op<OpCode::Eq>, Int<i1>, Int<i2>> {
+template <int i1, int i2> struct Apply<Op<OpCode::Eq>, Int<i1>, Int<i2>> {
   using type = Bool<i1 == i2>;
 };
 
-template <int i1, int i2>
-struct Apply<Op<OpCode::Neq>, Int<i1>, Int<i2>> {
+template <int i1, int i2> struct Apply<Op<OpCode::Neq>, Int<i1>, Int<i2>> {
   using type = Bool<i1 != i2>;
 };
 
-template <int i1, int i2>
-struct Apply<Op<OpCode::Leq>, Int<i1>, Int<i2>> {
+template <int i1, int i2> struct Apply<Op<OpCode::Leq>, Int<i1>, Int<i2>> {
   using type = Bool<i1 <= i2>;
 };
 
-template <int i>
-struct Apply<Op<OpCode::Neg>, Int<i>> {
+template <int i> struct Apply<Op<OpCode::Neg>, Int<i>> {
   using type = Bool<-i>;
 };
 
-template <bool b1, bool b2>
-struct Apply<Op<OpCode::Eq>, Bool<b1>, Bool<b2>> {
+template <bool b1, bool b2> struct Apply<Op<OpCode::Eq>, Bool<b1>, Bool<b2>> {
   using type = Bool<b1 == b2>;
 };
 
-template <bool b1, bool b2>
-struct Apply<Op<OpCode::Neq>, Bool<b1>, Bool<b2>> {
+template <bool b1, bool b2> struct Apply<Op<OpCode::Neq>, Bool<b1>, Bool<b2>> {
   using type = Bool<b1 != b2>;
 };
 
-template <bool b1, bool b2>
-struct Apply<Op<OpCode::Or>, Bool<b1>, Bool<b2>> {
+template <bool b1, bool b2> struct Apply<Op<OpCode::Or>, Bool<b1>, Bool<b2>> {
   using type = Bool<b1 or b2>;
 };
 
-template <bool b1, bool b2>
-struct Apply<Op<OpCode::And>, Bool<b1>, Bool<b2>> {
+template <bool b1, bool b2> struct Apply<Op<OpCode::And>, Bool<b1>, Bool<b2>> {
   using type = Bool<b1 and b2>;
 };
 
-template <bool b>
-struct Apply<Op<OpCode::Not>, Bool<b>> {
+template <bool b> struct Apply<Op<OpCode::Not>, Bool<b>> {
   using type = Bool<not b>;
 };
 
-template <class Car, class Cdr>
-struct Apply<Op<OpCode::Cons>, Car, Cdr> {
+template <class Car, class Cdr> struct Apply<Op<OpCode::Cons>, Car, Cdr> {
   using type = Cons<Car, Cdr>;
 };
 
-template <class Car, class Cdr>
-struct Apply<Op<OpCode::Car>, Cons<Car, Cdr>> {
+template <class Car, class Cdr> struct Apply<Op<OpCode::Car>, Cons<Car, Cdr>> {
   using type = Car;
 };
 
-template <class Car, class Cdr>
-struct Apply<Op<OpCode::Cdr>, Cons<Car, Cdr>> {
+template <class Car, class Cdr> struct Apply<Op<OpCode::Cdr>, Cons<Car, Cdr>> {
   using type = Cdr;
 };
 
-template <class Value>
-struct Apply<Op<OpCode::IsNull>, Value> {
+template <class Value> struct Apply<Op<OpCode::IsNull>, Value> {
   using type = False;
 };
 
-template <>
-struct Apply<Op<OpCode::IsNull>, EmptyList> {
-  using type = True;
-};
+template <> struct Apply<Op<OpCode::IsNull>, EmptyList> { using type = True; };
 
 template <class Body, class Env, class... Params, class... Args>
 struct Apply<Lambda<Body, Env, Params...>, Args...> {

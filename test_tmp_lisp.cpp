@@ -2,7 +2,6 @@
 
 #include <type_traits>
 
-
 namespace {
 template <class T, class U>
 inline constexpr bool is_same_v = std::is_same<T, U>::value;
@@ -47,166 +46,149 @@ int main() {
   static_assert(is_same_v<Eval_t<TestIf4, TestEnv1>, Lookup_t<Var2, TestEnv1>>);
 
   using TestIf5 = If<TestIf4, TestIf3, TestIf2>;
-  static_assert(is_same_v<Eval_t<TestIf5, TestEnv1>, Eval_t<TestIf3, TestEnv1>>);
+  static_assert(
+      is_same_v<Eval_t<TestIf5, TestEnv1>, Eval_t<TestIf3, TestEnv1>>);
 
-  using TestLambda1 = Lambda<If<Var0, Var1, Var2>, Env<Binding<Var1, One>>,
-                             Param<0>, Param<2>>;
+  using TestLambda1 =
+      Lambda<If<Var0, Var1, Var2>, Env<Binding<Var1, One>>, Param<0>, Param<2>>;
   using TestEnv2 = Env<Binding<Var3, Two>>;
-  static_assert(is_same_v<Eval_t<Application<TestLambda1, Var3, Three>, TestEnv2>,
-                One>);
-  static_assert(is_same_v<Eval_t<Application<TestLambda1, False, Three>, TestEnv2>,
+  static_assert(
+      is_same_v<Eval_t<Application<TestLambda1, Var3, Three>, TestEnv2>, One>);
+  static_assert(
+      is_same_v<Eval_t<Application<TestLambda1, False, Three>, TestEnv2>,
                 Three>);
 
   static_assert(is_same_v<Eval_t<Application<Op<OpCode::Add>, Var0, Var1>,
-                Env<Binding<Var0, One>, Binding<Var1, Two>>>, Three>);
+                                 Env<Binding<Var0, One>, Binding<Var1, Two>>>,
+                          Three>);
 
-  static_assert(is_same_v<Eval_t<Application<Op<OpCode::Mul>, Two, Three>, Env<>>,
+  static_assert(
+      is_same_v<Eval_t<Application<Op<OpCode::Mul>, Two, Three>, Env<>>,
                 Int<2 * 3>>);
 
   static_assert(
-      is_same_v<Eval_t<Application<Op<OpCode::Eq>, Two, Three>, Env<>>,
-                False>);
+      is_same_v<Eval_t<Application<Op<OpCode::Eq>, Two, Three>, Env<>>, False>);
 
-  using TestFunc2 = Eval_t<Lambda<Application<Op<OpCode::Add>, Var0, Var1>,
-                                  Env<Binding<Var0, One>>>,
-                           Env<Binding<Var1, Two>>>;
+  using TestFunc2 = Eval_t<
+      Lambda<Application<Op<OpCode::Add>, Var0, Var1>, Env<Binding<Var0, One>>>,
+      Env<Binding<Var1, Two>>>;
   using TestFunc2CallValue = Eval_t<Application<TestFunc2>, EmptyEnv>;
   static_assert(is_same_v<TestFunc2CallValue, Three>);
 
   /****************
    Factorial
    ****************/
-  
+
   using FactVar = Var<12345>;
-  using Fact =
-      Lambda<If<Application<Op<OpCode::Leq>, Var0, Zero>, One,
-                   Application<
-                       Op<OpCode::Mul>, Var0,
-                       Application<FactVar, Application<Op<OpCode::Sub>,
-                                                              Var0, One>>>>,
-             EmptyEnv, Var0>;
+  using Fact = Lambda<
+      If<Application<Op<OpCode::Leq>, Var0, Zero>, One,
+         Application<
+             Op<OpCode::Mul>, Var0,
+             Application<FactVar, Application<Op<OpCode::Sub>, Var0, One>>>>,
+      EmptyEnv, Var0>;
 
-   using ZeroFactorial =
-       Eval_t<Application<Fact, Zero>, Env<Binding<FactVar, Fact>>>;
+  using ZeroFactorial =
+      Eval_t<Application<Fact, Zero>, Env<Binding<FactVar, Fact>>>;
 
-   static_assert(is_same_v<ZeroFactorial, One>);
+  static_assert(is_same_v<ZeroFactorial, One>);
 
-   using OneFactorial =
-       Eval_t<Application<Fact, One>, Env<Binding<FactVar, Fact>>>;
+  using OneFactorial =
+      Eval_t<Application<Fact, One>, Env<Binding<FactVar, Fact>>>;
 
-   static_assert(is_same_v<OneFactorial, One>);
+  static_assert(is_same_v<OneFactorial, One>);
 
-   using TwoFactorial =
-        Eval_t<Application<Fact, Two>, Env<Binding<FactVar, Fact>>>;
+  using TwoFactorial =
+      Eval_t<Application<Fact, Two>, Env<Binding<FactVar, Fact>>>;
 
-   static_assert(is_same_v<TwoFactorial, Two>);
+  static_assert(is_same_v<TwoFactorial, Two>);
 
-   using SixFactorial = Eval_t<Application<Fact, Int<6>>,
-                               Env<Binding<FactVar, Fact>>>;
+  using SixFactorial =
+      Eval_t<Application<Fact, Int<6>>, Env<Binding<FactVar, Fact>>>;
 
-   static_assert(is_same_v<SixFactorial, Int<720>>);
-   
+  static_assert(is_same_v<SixFactorial, Int<720>>);
+
   /****************
    Tail-recursive Fact
    ****************/
 
-   using XParam = Var<54325>;
-   using AccumParam = Var<23424>;
-   using FactTailRecInner = Lambda<If<Application<Op<OpCode::Leq>, XParam, Int<0>>,
-                                      AccumParam,
-                                      Application<FactVar,
-                                                  Application<Op<OpCode::Sub>,
-                                                              XParam,
-                                                              Int<1>>,
-                                                  Application<Op<OpCode::Mul>,
-                                                              AccumParam,
-                                                              XParam>>
-                                      >,
-                                   EmptyEnv,
-                                   XParam,
-                                   AccumParam>;
+  using XParam = Var<54325>;
+  using AccumParam = Var<23424>;
+  using FactTailRecInner = Lambda<
+      If<Application<Op<OpCode::Leq>, XParam, Int<0>>, AccumParam,
+         Application<FactVar, Application<Op<OpCode::Sub>, XParam, Int<1>>,
+                     Application<Op<OpCode::Mul>, AccumParam, XParam>>>,
+      EmptyEnv, XParam, AccumParam>;
 
-   static_assert(is_same_v<Eval_t<Application<FactTailRecInner, Int<5>, Int<1>>,
-                 Env<Binding<FactVar, FactTailRecInner>>>, Int<120>>);
+  static_assert(is_same_v<Eval_t<Application<FactTailRecInner, Int<5>, Int<1>>,
+                                 Env<Binding<FactVar, FactTailRecInner>>>,
+                          Int<120>>);
 
-   using Arg = Var<44324>;
-   using FactInnerVar = Var<5646>;
-   using Fact2 = Lambda<Application<FactInnerVar, Arg, Int<1>>,
-                        Env<Binding<FactInnerVar, FactTailRecInner>,
-                            Binding<FactVar, FactTailRecInner>>,
-                        Arg>;
+  using Arg = Var<44324>;
+  using FactInnerVar = Var<5646>;
+  using Fact2 = Lambda<Application<FactInnerVar, Arg, Int<1>>,
+                       Env<Binding<FactInnerVar, FactTailRecInner>,
+                           Binding<FactVar, FactTailRecInner>>,
+                       Arg>;
 
-   static_assert(is_same_v<Eval_t<Application<Fact2, Int<4>>, EmptyEnv>, Int<24>>);
+  static_assert(
+      is_same_v<Eval_t<Application<Fact2, Int<4>>, EmptyEnv>, Int<24>>);
 
-   /******************
-      Mutual recursion
-   *******************/
+  /******************
+     Mutual recursion
+  *******************/
 
-   using IsOddVar = Var<4321>;
-   using IsEvenVar = Var<994324>;
-   using NParam = Var<422340>;
-   using IsEvenExp = Lambda<If<
-                              Application<Op<OpCode::Eq>, NParam, Int<0>>,
-                              Bool<true>,
-                              Application<IsOddVar,
-                                          Application<Op<OpCode::Sub>, NParam, Int<1>>>
-                              >,
-                            EmptyEnv,
-                            NParam>;
-   using IsOddExp = Lambda<If<
-                             Application<Op<OpCode::Eq>, NParam, Int<0>>,
-                             Bool<false>,
-                             Application<IsEvenVar,
-                                         Application<Op<OpCode::Sub>, NParam, Int<1>>>
-                             >,
-                           EmptyEnv,
-                           NParam>;
-   using IsOdd = Lambda<Application<IsOddVar, Arg>,
-                        Env<Binding<IsOddVar, IsOddExp>,
-                            Binding<IsEvenVar, IsEvenExp>>,
-                        Arg>;
+  using IsOddVar = Var<4321>;
+  using IsEvenVar = Var<994324>;
+  using NParam = Var<422340>;
+  using IsEvenExp = Lambda<
+      If<Application<Op<OpCode::Eq>, NParam, Int<0>>, Bool<true>,
+         Application<IsOddVar, Application<Op<OpCode::Sub>, NParam, Int<1>>>>,
+      EmptyEnv, NParam>;
+  using IsOddExp = Lambda<
+      If<Application<Op<OpCode::Eq>, NParam, Int<0>>, Bool<false>,
+         Application<IsEvenVar, Application<Op<OpCode::Sub>, NParam, Int<1>>>>,
+      EmptyEnv, NParam>;
+  using IsOdd =
+      Lambda<Application<IsOddVar, Arg>,
+             Env<Binding<IsOddVar, IsOddExp>, Binding<IsEvenVar, IsEvenExp>>,
+             Arg>;
 
-   static_assert(is_same_v<Eval_t<Application<IsOdd, Int<12>>, EmptyEnv>, Bool<false>>);
-   static_assert(is_same_v<Eval_t<Application<IsOdd, Int<41>>, EmptyEnv>, Bool<true>>);
-   
+  static_assert(
+      is_same_v<Eval_t<Application<IsOdd, Int<12>>, EmptyEnv>, Bool<false>>);
+  static_assert(
+      is_same_v<Eval_t<Application<IsOdd, Int<41>>, EmptyEnv>, Bool<true>>);
+
   /****************
    Lists
    ****************/
 
-   using SomeVar = Var<2>;
-   using SomeValue = Int<404>;
-   using AnotherValue = Int<1337>;
-   using TestList = Cons<AnotherValue, Cons<SomeVar, Cons<Int<3>, EmptyList>>>;
-   using TestEnv = Env<Binding<SomeVar, SomeValue>>;
-   
-   static_assert(is_same_v<Eval_t<Application<Op<OpCode::Car>, TestList>, TestEnv>, AnotherValue>);
+  using SomeVar = Var<2>;
+  using SomeValue = Int<404>;
+  using AnotherValue = Int<1337>;
+  using TestList = Cons<AnotherValue, Cons<SomeVar, Cons<Int<3>, EmptyList>>>;
+  using TestEnv = Env<Binding<SomeVar, SomeValue>>;
 
-   static_assert(is_same_v<Eval_t<Application<Op<OpCode::Car>,
-                 Application<Op<OpCode::Cdr>,
-                 TestList>>,
-                 TestEnv>,
-                 SomeValue>);
+  static_assert(
+      is_same_v<Eval_t<Application<Op<OpCode::Car>, TestList>, TestEnv>,
+                AnotherValue>);
 
-   using LenVar = Var<5432>;
-   using Param = Var<2342>;
-   using Len = Lambda<
-     If<Application<Op<OpCode::IsNull>, Param>,
-        Int<0>,
-        Application<Op<OpCode::Add>,
-                    Int<1>,
-                    Application<LenVar,
-                                Application<Op<OpCode::Cdr>, Param>>>>,
-     EmptyEnv,
-     Param>;
+  static_assert(
+      is_same_v<Eval_t<Application<Op<OpCode::Car>,
+                                   Application<Op<OpCode::Cdr>, TestList>>,
+                       TestEnv>,
+                SomeValue>);
 
-   static_assert(
-       is_same_v<Eval_t<
-           Application<Len,
-                       TestList>,
-           Env<
-               Binding<LenVar, Len>,
-               Binding<SomeVar, Bool<false>>
-           >
-       >,
-       Int<3>>);
+  using LenVar = Var<5432>;
+  using Param = Var<2342>;
+  using Len = Lambda<
+      If<Application<Op<OpCode::IsNull>, Param>, Int<0>,
+         Application<Op<OpCode::Add>, Int<1>,
+                     Application<LenVar, Application<Op<OpCode::Cdr>, Param>>>>,
+      EmptyEnv, Param>;
+
+  static_assert(
+      is_same_v<
+          Eval_t<Application<Len, TestList>,
+                 Env<Binding<LenVar, Len>, Binding<SomeVar, Bool<false>>>>,
+          Int<3>>);
 }
