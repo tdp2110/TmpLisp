@@ -75,6 +75,37 @@ int main() {
   using TestFunc2CallValue = Eval_t<Application<TestFunc2>, EmptyEnv>;
   static_assert(is_same_v<TestFunc2CallValue, Three>);
 
+  /********
+   Variadic ops
+   ********/
+
+  static_assert(
+      is_same_v<Eval_t<Application<Op<OpCode::Add>, Int<1>, Int<2>, Int<3>>,
+                       EmptyEnv>,
+                Int<6>>);
+
+  static_assert(
+      is_same_v<Eval_t<Application<Op<OpCode::Mul>, Int<1>, Int<2>, Int<3>>,
+                       EmptyEnv>,
+                Int<6>>);
+
+  static_assert(is_same_v<Eval_t<Application<Op<OpCode::And>, Bool<true>,
+                                             Bool<true>, Bool<false>>,
+                                 EmptyEnv>,
+                          Bool<false>>);
+
+  static_assert(
+      is_same_v<Eval_t<Application<Op<OpCode::Or>, Bool<true>, Bool<true>,
+                                   Bool<false>, Bool<false>, Bool<false>>,
+                       EmptyEnv>,
+                Bool<true>>);
+
+  static_assert(
+      is_same_v<Eval_t<Application<Op<OpCode::Eq>, Bool<true>, Bool<true>,
+                                   Bool<true>, Bool<true>, Bool<true>>,
+                       EmptyEnv>,
+                Bool<true>>);
+
   /****************
    Factorial
    ****************/

@@ -190,20 +190,20 @@ template <class Exp, class Env> using Eval_t = detail::Result_t<Eval<Exp, Env>>;
       APPLY
  *****************/
 
-template <int i1, int i2> struct Apply<Op<OpCode::Add>, Int<i1>, Int<i2>> {
-  using type = Int<i1 + i2>;
+template <int... is> struct Apply<Op<OpCode::Add>, Int<is>...> {
+  using type = Int<(... + is)>;
 };
 
 template <int i1, int i2> struct Apply<Op<OpCode::Sub>, Int<i1>, Int<i2>> {
   using type = Int<i1 - i2>;
 };
 
-template <int i1, int i2> struct Apply<Op<OpCode::Mul>, Int<i1>, Int<i2>> {
-  using type = Int<i1 * i2>;
+template <int... is> struct Apply<Op<OpCode::Mul>, Int<is>...> {
+  using type = Int<(... * is)>;
 };
 
-template <int i1, int i2> struct Apply<Op<OpCode::Eq>, Int<i1>, Int<i2>> {
-  using type = Bool<i1 == i2>;
+template <int... is> struct Apply<Op<OpCode::Eq>, Int<is>...> {
+  using type = Bool<(... == is)>;
 };
 
 template <int i1, int i2> struct Apply<Op<OpCode::Neq>, Int<i1>, Int<i2>> {
@@ -218,20 +218,20 @@ template <int i> struct Apply<Op<OpCode::Neg>, Int<i>> {
   using type = Bool<-i>;
 };
 
-template <bool b1, bool b2> struct Apply<Op<OpCode::Eq>, Bool<b1>, Bool<b2>> {
-  using type = Bool<b1 == b2>;
+template <bool... bs> struct Apply<Op<OpCode::Eq>, Bool<bs>...> {
+  using type = Bool<(... == bs)>;
 };
 
 template <bool b1, bool b2> struct Apply<Op<OpCode::Neq>, Bool<b1>, Bool<b2>> {
   using type = Bool<b1 != b2>;
 };
 
-template <bool b1, bool b2> struct Apply<Op<OpCode::Or>, Bool<b1>, Bool<b2>> {
-  using type = Bool<b1 or b2>;
+template <bool... bs> struct Apply<Op<OpCode::Or>, Bool<bs>...> {
+  using type = Bool<(... or bs)>;
 };
 
-template <bool b1, bool b2> struct Apply<Op<OpCode::And>, Bool<b1>, Bool<b2>> {
-  using type = Bool<b1 and b2>;
+template <bool... bs> struct Apply<Op<OpCode::And>, Bool<bs>...> {
+  using type = Bool<(... and bs)>;
 };
 
 template <bool b> struct Apply<Op<OpCode::Not>, Bool<b>> {
