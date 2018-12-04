@@ -152,19 +152,21 @@ struct Eval<If<False, IfTrue, IfFalse>, Env> {
   using type = Eval_t<IfFalse, Env>;
 };
 
-template <int i, class IfTrue, class IfFalse, class Env>
-struct Eval<If<Int<i>, IfTrue, IfFalse>, Env> {
-  using type = Eval_t<IfTrue, Env>;
-};
+namespace detail {
+template <class Val> struct ConvertToBool { using type = True; };
 
-template <class IfTrue, class IfFalse, class Env>
-struct Eval<If<Int<0>, IfTrue, IfFalse>, Env> {
-  using type = Eval_t<IfFalse, Env>;
-};
+template <> struct ConvertToBool<False> { using type = False; };
+
+template <> struct ConvertToBool<Int<0>> { using type = False; };
+
+template <class Val> using ConvertToBool_t = Result_t<ConvertToBool<Val>>;
+} // namespace detail
 
 template <class Cond, class IfTrue, class IfFalse, class Env>
 struct Eval<If<Cond, IfTrue, IfFalse>, Env> {
-  using type = Eval_t<If<Eval_t<Cond, Env>, IfTrue, IfFalse>, Env>;
+  using type =
+      Eval_t<If<detail::ConvertToBool_t<Eval_t<Cond, Env>>, IfTrue, IfFalse>,
+             Env>;
 };
 
 template <class Body, class LambdaEnv, class... Params, class Env>
