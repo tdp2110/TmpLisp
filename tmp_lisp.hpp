@@ -1,5 +1,9 @@
 #pragma once
 
+/*****************
+   Builtin Types
+ *****************/
+
 template <bool b> struct Bool {};
 
 using True = Bool<true>;
@@ -10,6 +14,16 @@ template <int i> struct Int {};
 template <class Car, class Cdr> struct Cons {};
 
 struct EmptyList {};
+
+template <class Operator, class... Operands> struct Application {};
+
+template <class Body, class Environment, class... Params> struct Lambda {};
+
+template <class Cond, class IfTrue, class IfFalse> struct If {};
+
+/**********************
+   Variables, Bindings
+***********************/
 
 template <int i> struct Var {};
 
@@ -40,6 +54,9 @@ struct MakeEnv<List<Variable, Variables...>, List<Value, Values...>> {
   using FinalEnv = typename MakeEnv<List<Variables...>, List<Values...>>::type;
   using type = typename Concat<InitialEnv, FinalEnv>::type;
 };
+
+template <class T> using Result_t = typename T::type;
+
 } // namespace detail
 
 template <class Variables, class Values>
@@ -67,13 +84,7 @@ enum class OpCode {
 
 template <OpCode op> struct Op {};
 
-template <class Operator, class... Operands> struct Application {};
-
 template <int i> using Param = Var<i>;
-
-template <class Body, class Environment, class... Params> struct Lambda {};
-
-template <class T> using Result_t = typename T::type;
 
 template <class Variable, class Env> struct Lookup;
 
@@ -95,14 +106,12 @@ struct Lookup<Variable, Env<Binding<Variable, Value>, Bindings...>> {
 
 template <class Variable, class Binding0, class... Bindings>
 struct Lookup<Variable, Env<Binding0, Bindings...>> {
-  using type = Result_t<Lookup<Variable, Env<Bindings...>>>;
+  using type = detail::Result_t<Lookup<Variable, Env<Bindings...>>>;
 };
 
 template <class Variable, class Env>
 using Lookup_t =
     typename PushEnv<typename Lookup<Variable, Env>::type, Env>::type;
-
-template <class Cond, class IfTrue, class IfFalse> struct If {};
 
 template <class Operator, class... Operands> struct Apply;
 
@@ -127,28 +136,28 @@ struct Eval<If<Cond, IfTrue, IfFalse>, Env>;
 
 template <class IfTrue, class IfFalse, class Env>
 struct Eval<If<True, IfTrue, IfFalse>, Env> {
-  using type = Result_t<Eval<IfTrue, Env>>;
+  using type = detail::Result_t<Eval<IfTrue, Env>>;
 };
 
 template <class IfTrue, class IfFalse, class Env>
 struct Eval<If<False, IfTrue, IfFalse>, Env> {
-  using type = Result_t<Eval<IfFalse, Env>>;
+  using type = detail::Result_t<Eval<IfFalse, Env>>;
 };
 
 template <int i, class IfTrue, class IfFalse, class Env>
 struct Eval<If<Int<i>, IfTrue, IfFalse>, Env> {
-  using type = Result_t<Eval<IfTrue, Env>>;
+  using type = detail::Result_t<Eval<IfTrue, Env>>;
 };
 
 template <class IfTrue, class IfFalse, class Env>
 struct Eval<If<Int<0>, IfTrue, IfFalse>, Env> {
-  using type = Result_t<Eval<IfFalse, Env>>;
+  using type = detail::Result_t<Eval<IfFalse, Env>>;
 };
 
 template <class Cond, class IfTrue, class IfFalse, class Env>
 struct Eval<If<Cond, IfTrue, IfFalse>, Env> {
-  using type =
-      Result_t<Eval<If<Result_t<Eval<Cond, Env>>, IfTrue, IfFalse>, Env>>;
+  using type = detail::Result_t<
+      Eval<If<detail::Result_t<Eval<Cond, Env>>, IfTrue, IfFalse>, Env>>;
 };
 
 template <class Body, class LambdaEnv, class... Params, class Env>
@@ -175,7 +184,7 @@ struct Eval<Application<Op<opcode>, Operands...>, Env> {
       typename Apply<Op<opcode>, typename Eval<Operands, Env>::type...>::type;
 };
 
-template <class Exp, class Env> using Eval_t = Result_t<Eval<Exp, Env>>;
+template <class Exp, class Env> using Eval_t = detail::Result_t<Eval<Exp, Env>>;
 
 /*****************
       APPLY
