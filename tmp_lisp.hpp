@@ -1,11 +1,11 @@
 #pragma once
 
-template <bool b> struct BoolConst { };
+template <bool b> struct BoolConst {};
 
 using True = BoolConst<true>;
 using False = BoolConst<false>;
 
-template <int i> struct IntConst { };
+template <int i> struct IntConst {};
 
 template <int i> struct Var {};
 
@@ -43,7 +43,7 @@ template <class Variables, class Values>
 using MakeEnv_t = typename detail::MakeEnv<Variables, Values>::Result;
 
 template <class Env1, class Env2>
-using ExtendEnv_t = typename detail::Concat<Env1, Env2>::Result;
+using ExtendEnv_t = typename detail::Concat<Env2, Env1>::Result;
 
 enum class OpCode { Add, Sub, Mul, Eq, Leq };
 
