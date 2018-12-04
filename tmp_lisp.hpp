@@ -21,6 +21,25 @@ template <class Body, class Environment, class... Params> struct Lambda {};
 
 template <class Cond, class IfTrue, class IfFalse> struct If {};
 
+enum class OpCode {
+  Add,
+  Sub,
+  Mul,
+  Eq,
+  Neq,
+  Leq,
+  Neg,
+  Or,
+  And,
+  Not,
+  Cons,
+  Car,
+  Cdr,
+  IsNull
+};
+
+template <OpCode op> struct Op {};
+
 /**********************
    Variables, Bindings
 ***********************/
@@ -65,25 +84,6 @@ using MakeEnv_t = typename detail::MakeEnv<Variables, Values>::type;
 template <class Env1, class Env2>
 using ExtendEnv_t = typename detail::Concat<Env2, Env1>::type;
 
-enum class OpCode {
-  Add,
-  Sub,
-  Mul,
-  Eq,
-  Neq,
-  Leq,
-  Neg,
-  Or,
-  And,
-  Not,
-  Cons,
-  Car,
-  Cdr,
-  IsNull
-};
-
-template <OpCode op> struct Op {};
-
 template <int i> using Param = Var<i>;
 
 template <class Variable, class Env> struct Lookup;
@@ -115,11 +115,16 @@ using Lookup_t =
 
 template <class Operator, class... Operands> struct Apply;
 
+template <class Operator, class... Operands>
+using Apply_t = detail::Result_t<Apply<Operator, Operands...>>;
+
 /*****************
       EVAL
  *****************/
 
 template <class Exp, class Env> struct Eval;
+
+template <class Exp, class Env> using Eval_t = detail::Result_t<Eval<Exp, Env>>;
 
 template <int i, class Env> struct Eval<Int<i>, Env> { using type = Int<i>; };
 
@@ -166,25 +171,19 @@ struct Eval<Lambda<Body, LambdaEnv, Params...>, Env> {
 };
 
 template <class Car, class Cdr, class Env> struct Eval<Cons<Car, Cdr>, Env> {
-  using type =
-      Cons<typename Eval<Car, Env>::type, typename Eval<Cdr, Env>::type>;
+  using type = Cons<Eval_t<Car, Env>, Eval_t<Cdr, Env>>;
 };
 
 template <class Env> struct Eval<EmptyList, Env> { using type = EmptyList; };
 
+template <OpCode opcode, class Env> struct Eval<Op<opcode>, Env> {
+  using type = Op<opcode>;
+};
+
 template <class Operator, class... Operands, class Env>
 struct Eval<Application<Operator, Operands...>, Env> {
-  using type = typename Apply<typename Eval<Operator, Env>::type,
-                              typename Eval<Operands, Env>::type...>::type;
+  using type = Apply_t<Eval_t<Operator, Env>, Eval_t<Operands, Env>...>;
 };
-
-template <OpCode opcode, class... Operands, class Env>
-struct Eval<Application<Op<opcode>, Operands...>, Env> {
-  using type =
-      typename Apply<Op<opcode>, typename Eval<Operands, Env>::type...>::type;
-};
-
-template <class Exp, class Env> using Eval_t = detail::Result_t<Eval<Exp, Env>>;
 
 /*****************
       APPLY
@@ -274,5 +273,5 @@ struct Apply<Lambda<Body, Env, Params...>, Args...> {
   using ExtendedEnv =
       ExtendEnv_t<Env,
                   MakeEnv_t<detail::List<Params...>, detail::List<Args...>>>;
-  using type = typename Eval<Body, ExtendedEnv>::type;
+  using type = Eval_t<Body, ExtendedEnv>;
 };
