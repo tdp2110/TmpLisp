@@ -190,6 +190,8 @@ template <class Exp, class Env> using Eval_t = detail::Result_t<Eval<Exp, Env>>;
       APPLY
  *****************/
 
+template <> struct Apply<Op<OpCode::Add>> { using type = Int<0>; };
+
 template <int... is> struct Apply<Op<OpCode::Add>, Int<is>...> {
   using type = Int<(... + is)>;
 };
@@ -201,6 +203,8 @@ template <int i1, int i2> struct Apply<Op<OpCode::Sub>, Int<i1>, Int<i2>> {
 template <int... is> struct Apply<Op<OpCode::Mul>, Int<is>...> {
   using type = Int<(... * is)>;
 };
+
+template <> struct Apply<Op<OpCode::Mul>> { using type = Int<1>; };
 
 template <int... is> struct Apply<Op<OpCode::Eq>, Int<is>...> {
   using type = Bool<(... == is)>;
@@ -218,8 +222,16 @@ template <int i> struct Apply<Op<OpCode::Neg>, Int<i>> {
   using type = Int<-i>;
 };
 
+template <class... Exps> struct Apply<Op<OpCode::Eq>, Exps...> {
+  using type = Bool<false>;
+};
+
 template <bool... bs> struct Apply<Op<OpCode::Eq>, Bool<bs>...> {
   using type = Bool<(... == bs)>;
+};
+
+template <class... Exps> struct Apply<Op<OpCode::Neq>, Exps...> {
+  using type = Bool<true>;
 };
 
 template <bool b1, bool b2> struct Apply<Op<OpCode::Neq>, Bool<b1>, Bool<b2>> {
