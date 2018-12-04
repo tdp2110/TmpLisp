@@ -137,6 +137,10 @@ int main() {
                         Arg>;
 
    static_assert(is_same_v<Eval_t<Application<Fact2, Int<4>>, EmptyEnv>, Int<24>>);
+
+   /**********
+              TODOS: try mutually recursive functions, introduce Let expr
+    **********/
    
   /****************
    Lists

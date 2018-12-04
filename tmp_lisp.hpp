@@ -63,10 +63,6 @@ template <class T> using Result_t = typename T::type;
 
 template <class Variable, class Env> struct Lookup;
 
-/*
-TODO TRY NEXT: try extending the environment in the return value
-*/
-
 template <class Value, class Environment> struct PushEnv {
   using type = Value;
 };
@@ -263,7 +259,7 @@ struct Apply<Op<OpCode::IsNull>, Value> {
 
 template <>
 struct Apply<Op<OpCode::IsNull>, EmptyList> {
-  using type = True;
+  using ytpe = True;
 };
 
 template <class Body, class Env, class... Params, class... Args>
