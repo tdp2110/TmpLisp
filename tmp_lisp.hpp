@@ -1,12 +1,12 @@
 #pragma once
 
 namespace TmpLisp {
-template <bool b> struct BoolConst { static constexpr bool value = b; };
+template <bool b> struct BoolConst { };
 
 using True = BoolConst<true>;
 using False = BoolConst<false>;
 
-template <int i> struct IntConst { static constexpr int value = i; };
+template <int i> struct IntConst { };
 
 template <int i> struct Var {};
 
@@ -71,9 +71,9 @@ template <class Value, class Environment> struct PushEnv {
 template <class LambdaBody, class LambdaEnv, class... LambdaParams,
           class Environment>
 struct PushEnv<Lambda<LambdaBody, LambdaEnv, LambdaParams...>, Environment> {
-  // using Result =
-  //     Lambda<LambdaBody, ExtendEnv_t<LambdaEnv, Environment>,
-  //     LambdaParams...>;
+   using Result =
+       Lambda<LambdaBody, ExtendEnv_t<LambdaEnv, Environment>,
+       LambdaParams...>;
 };
 
 template <class Variable, class Value, class... Bindings>
@@ -88,10 +88,7 @@ struct Lookup<Variable, Env<Binding0, Bindings...>> {
 
 template <class Variable, class Env>
 using Lookup_t =
-    typename PushEnv<typename Lookup<Variable, Env>::Result, Env>::Result;
-
-template <class Variable, class Env>
-constexpr auto Lookup_v = Lookup_t<Variable, Env>::value;
+  typename PushEnv<typename Lookup<Variable, Env>::Result, Env>::Result;
 
 template <class Cond, class IfTrue, class IfFalse> struct IfExp {};
 
@@ -105,12 +102,10 @@ template <class Exp, class Env> struct Eval;
 
 template <int i, class Env> struct Eval<IntConst<i>, Env> {
   using Result = IntConst<i>;
-  static constexpr auto value = Result::value;
 };
 
 template <bool b, class Env> struct Eval<BoolConst<b>, Env> {
   using Result = BoolConst<b>;
-  static constexpr auto value = Result::value;
 };
 
 template <int i, class Env> struct Eval<Var<i>, Env> {
@@ -123,38 +118,32 @@ struct Eval<IfExp<Cond, IfTrue, IfFalse>, Env>;
 template <class IfTrue, class IfFalse, class Env>
 struct Eval<IfExp<True, IfTrue, IfFalse>, Env> {
   using Result = Result_t<Eval<IfTrue, Env>>;
-  static constexpr auto value = Result::value;
 };
 
 template <class IfTrue, class IfFalse, class Env>
 struct Eval<IfExp<False, IfTrue, IfFalse>, Env> {
   using Result = Result_t<Eval<IfFalse, Env>>;
-  static constexpr auto value = Result::value;
 };
 
 template <int i, class IfTrue, class IfFalse, class Env>
 struct Eval<IfExp<IntConst<i>, IfTrue, IfFalse>, Env> {
   using Result = Result_t<Eval<IfTrue, Env>>;
-  static constexpr auto value = Result::value;
 };
 
 template <class IfTrue, class IfFalse, class Env>
 struct Eval<IfExp<IntConst<0>, IfTrue, IfFalse>, Env> {
   using Result = Result_t<Eval<IfFalse, Env>>;
-  static constexpr auto value = Result::value;
 };
 
 template <class Cond, class IfTrue, class IfFalse, class Env>
 struct Eval<IfExp<Cond, IfTrue, IfFalse>, Env> {
   using Result =
       Result_t<Eval<IfExp<Result_t<Eval<Cond, Env>>, IfTrue, IfFalse>, Env>>;
-  static constexpr auto value = Result::value;
 };
 
 template <class Body, class LambdaEnv, class... Params, class Env>
 struct Eval<Lambda<Body, LambdaEnv, Params...>, Env> {
   using Result = Lambda<Body, ExtendEnv_t<LambdaEnv, Env>, Params...>;
-  static constexpr auto value = Result();
 };
 
 template <class OperatorExp, class... OperandExps, class Env>
@@ -162,7 +151,6 @@ struct Eval<ApplicationExp<OperatorExp, OperandExps...>, Env> {
   using Result =
       typename Apply<typename Eval<OperatorExp, Env>::Result,
                      typename Eval<OperandExps, Env>::Result...>::Result;
-  static constexpr auto value = Result::value;
 };
 
 template <OpCode opcode, class... OperandExps, class Env>
@@ -170,11 +158,9 @@ struct Eval<ApplicationExp<Op<opcode>, OperandExps...>, Env> {
   using Result =
       typename Apply<Op<opcode>,
                      typename Eval<OperandExps, Env>::Result...>::Result;
-  static constexpr auto value = Result::value;
 };
 
 template <class Exp, class Env> using Eval_r = Result_t<Eval<Exp, Env>>;
-template <class Exp, class Env> constexpr auto Eval_v = Eval_r<Exp, Env>::value;
 
 /*****************
       APPLY
@@ -183,31 +169,26 @@ template <class Exp, class Env> constexpr auto Eval_v = Eval_r<Exp, Env>::value;
 template <int i1, int i2>
 struct Apply<Op<OpCode::Add>, IntConst<i1>, IntConst<i2>> {
   using Result = IntConst<i1 + i2>;
-  static constexpr auto value = Result::value;
 };
 
 template <int i1, int i2>
 struct Apply<Op<OpCode::Sub>, IntConst<i1>, IntConst<i2>> {
   using Result = IntConst<i1 - i2>;
-  static constexpr auto value = Result::value;
 };
 
 template <int i1, int i2>
 struct Apply<Op<OpCode::Mul>, IntConst<i1>, IntConst<i2>> {
   using Result = IntConst<i1 * i2>;
-  static constexpr auto value = Result::value;
 };
 
 template <int i1, int i2>
 struct Apply<Op<OpCode::Eq>, IntConst<i1>, IntConst<i2>> {
   using Result = BoolConst<i1 == i2>;
-  static constexpr auto value = Result::value;
 };
 
 template <int i1, int i2>
 struct Apply<Op<OpCode::Leq>, IntConst<i1>, IntConst<i2>> {
   using Result = BoolConst<i1 <= i2>;
-  static constexpr auto value = Result::value;
 };
 
 template <class BodyExp, class LambdaEnv, class... Params, class... Args>
@@ -217,7 +198,6 @@ struct Apply<Lambda<BodyExp, LambdaEnv, Params...>, Args...> {
       ExtendEnv_t<LambdaEnv,
                   MakeEnv_t<detail::List<Params...>, detail::List<Args...>>>;
   using Result = typename Eval<BodyExp, ExtendedEnv>::Result;
-  static constexpr auto value = Result::value;
 };
 
 } // namespace TmpLisp

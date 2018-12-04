@@ -15,8 +15,8 @@ int main() {
   using Two = IntConst<2>;
   using Three = IntConst<3>;
 
-  static_assert(Eval_v<Zero, EmptyEnv> == 0);
-  static_assert(Eval_v<One, EmptyEnv> == 1);
+  static_assert(is_same_v<Eval_r<Zero, EmptyEnv>, Zero>);
+  static_assert(is_same_v<Eval_r<One, EmptyEnv>, One>);
 
   using Var0 = Var<0>;
   using Var1 = Var<1>;
@@ -29,40 +29,40 @@ int main() {
   using TestEnv1 =
       Env<Binding<Var0, MinusOne>, Binding<Var1, MinusTwo>,
           Binding<Var2, MinusThree>, Binding<Var3, True>, Binding<Var4, False>>;
-  static_assert(Eval_v<Var0, TestEnv1> == MinusOne::value);
-  static_assert(Eval_v<Var1, TestEnv1> == MinusTwo::value);
-  static_assert(Eval_v<Var2, TestEnv1> == MinusThree::value);
+  static_assert(is_same_v<Eval_r<Var0, TestEnv1>, MinusOne>);
+  static_assert(is_same_v<Eval_r<Var1, TestEnv1>, MinusTwo>);
+  static_assert(is_same_v<Eval_r<Var2, TestEnv1>, MinusThree>);
 
   using TestIfExp1 = IfExp<Var0, Var1, Var2>;
-  static_assert(Eval_v<TestIfExp1, TestEnv1> == Lookup_v<Var1, TestEnv1>);
-  static_assert(Lookup_v<Var1, TestEnv1> == MinusTwo::value);
+  static_assert(is_same_v<Eval_r<TestIfExp1, TestEnv1>, Lookup_t<Var1, TestEnv1>>);
+  static_assert(is_same_v<Lookup_t<Var1, TestEnv1>, MinusTwo>);
 
   using TestIfExp2 = IfExp<Zero, Var1, Var2>;
-  static_assert(Eval_v<TestIfExp2, TestEnv1> == Lookup_v<Var2, TestEnv1>);
-  static_assert(Lookup_v<Var2, TestEnv1> == MinusThree::value);
+  static_assert(is_same_v<Eval_r<TestIfExp2, TestEnv1>, Lookup_t<Var2, TestEnv1>>);
+  static_assert(is_same_v<Lookup_t<Var2, TestEnv1>, MinusThree>);
 
   using TestIfExp3 = IfExp<Var3, Var1, Var2>;
-  static_assert(Eval_v<TestIfExp3, TestEnv1> == Lookup_v<Var1, TestEnv1>);
+  static_assert(is_same_v<Eval_r<TestIfExp3, TestEnv1>, Lookup_t<Var1, TestEnv1>>);
 
   using TestIfExp4 = IfExp<Var4, Var1, Var2>;
-  static_assert(Eval_v<TestIfExp4, TestEnv1> == Lookup_v<Var2, TestEnv1>);
+  static_assert(is_same_v<Eval_r<TestIfExp4, TestEnv1>, Lookup_t<Var2, TestEnv1>>);
 
   using TestIfExp5 = IfExp<TestIfExp4, TestIfExp3, TestIfExp2>;
-  static_assert(Eval_v<TestIfExp5, TestEnv1> == Eval_v<TestIfExp3, TestEnv1>);
+  static_assert(is_same_v<Eval_r<TestIfExp5, TestEnv1>, Eval_r<TestIfExp3, TestEnv1>>);
 
   using TestLambda1 = Lambda<IfExp<Var0, Var1, Var2>, Env<Binding<Var1, One>>,
                              Param<0>, Param<2>>;
   using TestEnv2 = Env<Binding<Var3, Two>>;
-  static_assert(Eval_v<ApplicationExp<TestLambda1, Var3, Three>, TestEnv2> ==
-                1);
-  static_assert(Eval_v<ApplicationExp<TestLambda1, False, Three>, TestEnv2> ==
-                3);
+  static_assert(is_same_v<Eval_r<ApplicationExp<TestLambda1, Var3, Three>, TestEnv2>,
+                One>);
+  static_assert(is_same_v<Eval_r<ApplicationExp<TestLambda1, False, Three>, TestEnv2>,
+                Three>);
 
-  static_assert(Eval_v<ApplicationExp<Op<OpCode::Add>, Var0, Var1>,
-                       Env<Binding<Var0, One>, Binding<Var1, Two>>> == 1 + 2);
+  static_assert(is_same_v<Eval_r<ApplicationExp<Op<OpCode::Add>, Var0, Var1>,
+                Env<Binding<Var0, One>, Binding<Var1, Two>>>, Three>);
 
-  static_assert(Eval_v<ApplicationExp<Op<OpCode::Mul>, Two, Three>, Env<>> ==
-                2 * 3);
+  static_assert(is_same_v<Eval_r<ApplicationExp<Op<OpCode::Mul>, Two, Three>, Env<>>,
+                IntConst<2 * 3>>);
 
   static_assert(
       is_same_v<Eval<ApplicationExp<Op<OpCode::Eq>, Two, Three>, Env<>>::Result,
@@ -83,15 +83,20 @@ int main() {
                                                               Var0, One>>>>,
              EmptyEnv, Var0>;
 
-  using OneFactorial =
-      Eval<ApplicationExp<Fact, One>, Env<Binding<FactVar, Fact>>>::Result;
+   using ZeroFactorial =
+       Eval<ApplicationExp<Fact, Zero>, Env<Binding<FactVar, Fact>>>::Result;
 
-  static_assert(is_same_v<OneFactorial, One>);
+   static_assert(is_same_v<ZeroFactorial, One>);
+
+   using OneFactorial =
+       Eval<ApplicationExp<Fact, One>, Env<Binding<FactVar, Fact>>>::Result;
+
+   static_assert(is_same_v<ZeroFactorial, One>);
 
   // using TwoFactorial =
-  //     Eval<ApplicationExp<Fact, Two>, Env<Binding<FactVar, Fact>>>::Result;
+  //      Eval<ApplicationExp<Fact, Two>, Env<Binding<FactVar, Fact>>>::Result;
 
-  // static_assert(is_same_v<TwoFactorial, Two>);
+  //  static_assert(is_same_v<TwoFactorial, Two>);
 
   // using SixFactorial = Eval<ApplicationExp<Fact, IntConst<6>>,
   //                           Env<Binding<FactVar, Fact>>>::Result;
