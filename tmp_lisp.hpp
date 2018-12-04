@@ -45,7 +45,7 @@ using MakeEnv_t = typename detail::MakeEnv<Variables, Values>::Result;
 template <class Env1, class Env2>
 using ExtendEnv_t = typename detail::Concat<Env2, Env1>::Result;
 
-enum class OpCode { Add, Sub, Mul, Eq, Leq };
+enum class OpCode { Add, Sub, Mul, Eq, Neq, Leq, Neg, Or, And, Not };
 
 template <OpCode op> struct Op {};
 
@@ -186,8 +186,43 @@ struct Apply<Op<OpCode::Eq>, IntConst<i1>, IntConst<i2>> {
 };
 
 template <int i1, int i2>
+struct Apply<Op<OpCode::Neq>, IntConst<i1>, IntConst<i2>> {
+  using Result = BoolConst<i1 != i2>;
+};
+
+template <int i1, int i2>
 struct Apply<Op<OpCode::Leq>, IntConst<i1>, IntConst<i2>> {
   using Result = BoolConst<i1 <= i2>;
+};
+
+template <int i>
+struct Apply<Op<OpCode::Neg>, IntConst<i>> {
+  using Result = BoolConst<-i>;
+};
+
+template <bool b1, bool b2>
+struct Apply<Op<OpCode::Eq>, BoolConst<b1>, BoolConst<b2>> {
+  using Result = BoolConst<b1 == b2>;
+};
+
+template <bool b1, bool b2>
+struct Apply<Op<OpCode::Neq>, BoolConst<b1>, BoolConst<b2>> {
+  using Result = BoolConst<b1 != b2>;
+};
+
+template <bool b1, bool b2>
+struct Apply<Op<OpCode::Or>, BoolConst<b1>, BoolConst<b2>> {
+  using Result = BoolConst<b1 or b2>;
+};
+
+template <bool b1, bool b2>
+struct Apply<Op<OpCode::And>, BoolConst<b1>, BoolConst<b2>> {
+  using Result = BoolConst<b1 and b2>;
+};
+
+template <bool b>
+struct Apply<Op<OpCode::Not>, BoolConst<b>> {
+  using Result = BoolConst<not b>;
 };
 
 template <class BodyExp, class LambdaEnv, class... Params, class... Args>
