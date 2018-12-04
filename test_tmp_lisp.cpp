@@ -73,6 +73,10 @@ int main() {
   using TestFunc2CallValue = Eval_t<Application<TestFunc2>, EmptyEnv>;
   static_assert(is_same_v<TestFunc2CallValue, Three>);
 
+  /****************
+   Factorial
+   ****************/
+  
   using FactVar = Var<12345>;
   using Fact =
       Lambda<If<Application<Op<OpCode::Leq>, Var0, Zero>, One,
@@ -101,4 +105,45 @@ int main() {
                                Env<Binding<FactVar, Fact>>>;
 
    static_assert(is_same_v<SixFactorial, Int<720>>);
+   
+  /****************
+   Lists
+   ****************/
+
+   using SomeVar = Var<2>;
+   using SomeValue = Int<404>;
+   using AnotherValue = Int<1337>;
+   using TestList = Cons<AnotherValue, Cons<SomeVar, Cons<Int<3>, EmptyList>>>;
+   using TestEnv = Env<Binding<SomeVar, SomeValue>>;
+   
+   static_assert(is_same_v<Eval_t<Application<Op<OpCode::Car>, TestList>, TestEnv>, AnotherValue>);
+
+   static_assert(is_same_v<Eval_t<Application<Op<OpCode::Car>,
+                 Application<Op<OpCode::Cdr>,
+                 TestList>>,
+                 TestEnv>,
+                 SomeValue>);
+
+   using LenVar = Var<5432>;
+   using Param = Var<2342>;
+   using Len = Lambda<
+     If<Application<Op<OpCode::IsNull>, Param>,
+        Int<0>,
+        Application<Op<OpCode::Add>,
+                    Int<1>,
+                    Application<LenVar,
+                                Application<Op<OpCode::Cdr>, Param>>>>,
+     EmptyEnv,
+     Param>;
+
+   static_assert(
+       is_same_v<Eval_t<
+           Application<Len,
+                       TestList>,
+           Env<
+               Binding<LenVar, Len>,
+               Binding<SomeVar, Bool<false>>
+           >
+       >,
+       Int<3>>);
 }

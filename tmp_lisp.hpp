@@ -7,6 +7,10 @@ using False = Bool<false>;
 
 template <int i> struct Int {};
 
+template <class Car, class Cdr> struct Cons {};
+
+struct EmptyList {};
+
 template <int i> struct Var {};
 
 template <class Variable, class Value> struct Binding {};
@@ -45,7 +49,7 @@ using MakeEnv_t = typename detail::MakeEnv<Variables, Values>::type;
 template <class Env1, class Env2>
 using ExtendEnv_t = typename detail::Concat<Env2, Env1>::type;
 
-enum class OpCode { Add, Sub, Mul, Eq, Neq, Leq, Neg, Or, And, Not };
+enum class OpCode { Add, Sub, Mul, Eq, Neq, Leq, Neg, Or, And, Not, Cons, Car, Cdr, IsNull };
 
 template <OpCode op> struct Op {};
 
@@ -145,6 +149,18 @@ struct Eval<Lambda<Body, LambdaEnv, Params...>, Env> {
   using type = Lambda<Body, ExtendEnv_t<LambdaEnv, Env>, Params...>;
 };
 
+template <class Car, class Cdr, class Env>
+struct Eval<Cons<Car, Cdr>, Env>
+{
+  using type = Cons<typename Eval<Car, Env>::type,
+                    typename Eval<Cdr, Env>::type>;
+};
+
+template <class Env> struct Eval<EmptyList, Env>
+{
+  using type = EmptyList;
+};
+
 template <class Operator, class... Operands, class Env>
 struct Eval<Application<Operator, Operands...>, Env> {
   using type =
@@ -223,6 +239,31 @@ struct Apply<Op<OpCode::And>, Bool<b1>, Bool<b2>> {
 template <bool b>
 struct Apply<Op<OpCode::Not>, Bool<b>> {
   using type = Bool<not b>;
+};
+
+template <class Car, class Cdr>
+struct Apply<Op<OpCode::Cons>, Car, Cdr> {
+  using type = Cons<Car, Cdr>;
+};
+
+template <class Car, class Cdr>
+struct Apply<Op<OpCode::Car>, Cons<Car, Cdr>> {
+  using type = Car;
+};
+
+template <class Car, class Cdr>
+struct Apply<Op<OpCode::Cdr>, Cons<Car, Cdr>> {
+  using type = Cdr;
+};
+
+template <class Value>
+struct Apply<Op<OpCode::IsNull>, Value> {
+  using type = False;
+};
+
+template <>
+struct Apply<Op<OpCode::IsNull>, EmptyList> {
+  using type = True;
 };
 
 template <class Body, class Env, class... Params, class... Args>
