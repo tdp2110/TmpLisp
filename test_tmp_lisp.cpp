@@ -138,9 +138,36 @@ int main() {
 
    static_assert(is_same_v<Eval_t<Application<Fact2, Int<4>>, EmptyEnv>, Int<24>>);
 
-   /**********
-              TODOS: try mutually recursive functions, introduce Let expr
-    **********/
+   /******************
+      Mutual recursion
+   *******************/
+
+   using IsOddVar = Var<4321>;
+   using IsEvenVar = Var<994324>;
+   using NParam = Var<422340>;
+   using IsEvenExp = Lambda<If<
+                              Application<Op<OpCode::Eq>, NParam, Int<0>>,
+                              Bool<true>,
+                              Application<IsOddVar,
+                                          Application<Op<OpCode::Sub>, NParam, Int<1>>>
+                              >,
+                            EmptyEnv,
+                            NParam>;
+   using IsOddExp = Lambda<If<
+                             Application<Op<OpCode::Eq>, NParam, Int<0>>,
+                             Bool<false>,
+                             Application<IsEvenVar,
+                                         Application<Op<OpCode::Sub>, NParam, Int<1>>>
+                             >,
+                           EmptyEnv,
+                           NParam>;
+   using IsOdd = Lambda<Application<IsOddVar, Arg>,
+                        Env<Binding<IsOddVar, IsOddExp>,
+                            Binding<IsEvenVar, IsEvenExp>>,
+                        Arg>;
+
+   static_assert(is_same_v<Eval_t<Application<IsOdd, Int<12>>, EmptyEnv>, Bool<false>>);
+   static_assert(is_same_v<Eval_t<Application<IsOdd, Int<41>>, EmptyEnv>, Bool<true>>);
    
   /****************
    Lists

@@ -259,7 +259,7 @@ struct Apply<Op<OpCode::IsNull>, Value> {
 
 template <>
 struct Apply<Op<OpCode::IsNull>, EmptyList> {
-  using ytpe = True;
+  using type = True;
 };
 
 template <class Body, class Env, class... Params, class... Args>
