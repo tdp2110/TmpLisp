@@ -15,7 +15,7 @@ template <class Car, class Cdr> struct Cons {};
 
 struct EmptyList {};
 
-template <class Operator, class... Operands> struct Application {};
+template <class Operator, class... Operands> struct SExp {};
 
 template <class Body, class Environment, class... Params> struct Lambda {};
 
@@ -183,7 +183,7 @@ template <OpCode opcode, class Env> struct Eval<Op<opcode>, Env> {
 };
 
 template <class Operator, class... Operands, class Env>
-struct Eval<Application<Operator, Operands...>, Env> {
+struct Eval<SExp<Operator, Operands...>, Env> {
   using type = Apply_t<Eval_t<Operator, Env>, Eval_t<Operands, Env>...>;
 };
 
@@ -288,6 +288,6 @@ WIP
 template <class... Ts> struct Let;
 
 template <class Body, class... Bindings> struct Let<Bindings..., Body> {
-  using type = Application<Lambda<Body, detail::ExtractEnv<Bindings...>>>> ;
+  using type = SExp<Lambda<Body, detail::ExtractEnv<Bindings...>>>> ;
 };
 */
