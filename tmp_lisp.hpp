@@ -75,7 +75,6 @@ struct MakeEnv<List<Variable, Variables...>, List<Value, Values...>> {
 };
 
 template <class T> using Result_t = typename T::type;
-
 } // namespace detail
 
 template <class Variables, class Values>
@@ -113,6 +112,10 @@ template <class Variable, class Env>
 using Lookup_t =
     typename PushEnv<typename Lookup<Variable, Env>::type, Env>::type;
 
+/********************
+APPLY fwd definition
+*********************/
+
 template <class Operator, class... Operands> struct Apply;
 
 template <class Operator, class... Operands>
@@ -141,28 +144,27 @@ struct Eval<If<Cond, IfTrue, IfFalse>, Env>;
 
 template <class IfTrue, class IfFalse, class Env>
 struct Eval<If<True, IfTrue, IfFalse>, Env> {
-  using type = detail::Result_t<Eval<IfTrue, Env>>;
+  using type = Eval_t<IfTrue, Env>;
 };
 
 template <class IfTrue, class IfFalse, class Env>
 struct Eval<If<False, IfTrue, IfFalse>, Env> {
-  using type = detail::Result_t<Eval<IfFalse, Env>>;
+  using type = Eval_t<IfFalse, Env>;
 };
 
 template <int i, class IfTrue, class IfFalse, class Env>
 struct Eval<If<Int<i>, IfTrue, IfFalse>, Env> {
-  using type = detail::Result_t<Eval<IfTrue, Env>>;
+  using type = Eval_t<IfTrue, Env>;
 };
 
 template <class IfTrue, class IfFalse, class Env>
 struct Eval<If<Int<0>, IfTrue, IfFalse>, Env> {
-  using type = detail::Result_t<Eval<IfFalse, Env>>;
+  using type = Eval_t<IfFalse, Env>;
 };
 
 template <class Cond, class IfTrue, class IfFalse, class Env>
 struct Eval<If<Cond, IfTrue, IfFalse>, Env> {
-  using type = detail::Result_t<
-      Eval<If<detail::Result_t<Eval<Cond, Env>>, IfTrue, IfFalse>, Env>>;
+  using type = Eval_t<If<Eval_t<Cond, Env>, IfTrue, IfFalse>, Env>;
 };
 
 template <class Body, class LambdaEnv, class... Params, class Env>
@@ -275,3 +277,17 @@ struct Apply<Lambda<Body, Env, Params...>, Args...> {
                   MakeEnv_t<detail::List<Params...>, detail::List<Args...>>>;
   using type = Eval_t<Body, ExtendedEnv>;
 };
+
+/*****************
+  Compound forms
+******************/
+
+/*
+WIP
+
+template <class... Ts> struct Let;
+
+template <class Body, class... Bindings> struct Let<Bindings..., Body> {
+  using type = Application<Lambda<Body, detail::ExtractEnv<Bindings...>>>> ;
+};
+*/
