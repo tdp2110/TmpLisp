@@ -2,10 +2,8 @@
 
 #include <type_traits>
 
-namespace {
 template <class T, class U>
 inline constexpr bool is_same_v = std::is_same<T, U>::value;
-}
 
 int main() {
   using Zero = Int<0>;
