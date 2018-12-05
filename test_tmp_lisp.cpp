@@ -278,4 +278,14 @@ int main() {
   static_assert(
       is_same_v<MappedList,
                 Cons<Int<4>, Cons<Int<8>, Cons<Int<12>, EmptyList>>>>);
+
+  using FactFun =
+      Lambda<SExp<FactVar, FactArg>, Env<Binding<FactVar, FactExp>>, FactArg>;
+
+  using MappedByFact = Eval<SExp<MapCarVar, FactFun, SomeList>,
+                            Env<Binding<MapCarVar, MapCarExp>>>;
+
+  static_assert(
+      is_same_v<MappedByFact,
+                Cons<Int<2>, Cons<Int<24>, Cons<Int<720>, EmptyList>>>>);
 }
