@@ -284,12 +284,4 @@ struct Apply<Lambda<Body, Env, Params...>, Args...> {
   Compound forms
 ******************/
 
-/*
-WIP
-
-template <class... Ts> struct Let;
-
-template <class Body, class... Bindings> struct Let<Bindings..., Body> {
-  using type = SExp<Lambda<Body, detail::ExtractEnv<Bindings...>>>> ;
-};
-*/
+template <class Env, class Body> using Let = SExp<Lambda<Body, Env>>;

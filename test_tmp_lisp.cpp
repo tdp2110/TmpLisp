@@ -118,24 +118,24 @@ int main() {
    ****************/
 
   using FactVar = Var<12345>;
-  using Fact = Lambda<If<SExp<Op<OpCode::Leq>, Var0, Zero>, One,
+  using FactExp = Lambda<If<SExp<Op<OpCode::Leq>, Var0, Zero>, One,
                          SExp<Op<OpCode::Mul>, Var0,
                               SExp<FactVar, SExp<Op<OpCode::Sub>, Var0, One>>>>,
                       EmptyEnv, Var0>;
 
-  using ZeroFactorial = Eval_t<SExp<Fact, Zero>, Env<Binding<FactVar, Fact>>>;
+  using ZeroFactorial = Eval_t<SExp<FactExp, Zero>, Env<Binding<FactVar, FactExp>>>;
 
   static_assert(is_same_v<ZeroFactorial, One>);
 
-  using OneFactorial = Eval_t<SExp<Fact, One>, Env<Binding<FactVar, Fact>>>;
+  using OneFactorial = Eval_t<SExp<FactExp, One>, Env<Binding<FactVar, FactExp>>>;
 
   static_assert(is_same_v<OneFactorial, One>);
 
-  using TwoFactorial = Eval_t<SExp<Fact, Two>, Env<Binding<FactVar, Fact>>>;
+  using TwoFactorial = Eval_t<SExp<FactExp, Two>, Env<Binding<FactVar, FactExp>>>;
 
   static_assert(is_same_v<TwoFactorial, Two>);
 
-  using SixFactorial = Eval_t<SExp<Fact, Int<6>>, Env<Binding<FactVar, Fact>>>;
+  using SixFactorial = Eval_t<SExp<FactExp, Int<6>>, Env<Binding<FactVar, FactExp>>>;
 
   static_assert(is_same_v<SixFactorial, Int<720>>);
 
@@ -216,4 +216,19 @@ int main() {
       is_same_v<Eval_t<SExp<Len, TestList>, Env<Binding<LenVar, Len>,
                                                 Binding<SomeVar, Bool<false>>>>,
                 Int<3>>);
+
+  /**********************
+   Let
+   **********************/
+
+  using LetExp1 = Let<
+      Env<Binding<Var0, One>>,
+      Let<Env<Binding<Var1, Two>>, SExp<Op<OpCode::Add>, Var0, Var1, Var2>>>;
+
+  static_assert(is_same_v<Eval_t<LetExp1, Env<Binding<Var2, Three>>>, Int<6>>);
+
+  using FactArg = Var<4324343>;
+  using FactApplication = Let<Env<Binding<FactVar, FactExp>>, SExp<FactVar, FactArg>>;
+
+  static_assert(is_same_v<Eval_t<FactApplication, Env<Binding<FactArg, Int<7>>>>, Int<5040>>);
 }
