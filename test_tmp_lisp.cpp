@@ -223,6 +223,19 @@ int main() {
                 Int<3>>);
 
   /**********************
+   Cond
+  *********************/
+
+  using CondExp = Cond<SExp<Op<OpCode::Eq>, Int<1>, Var0>, Int<100>,
+                       SExp<Op<OpCode::Eq>, Int<2>, Var0>, Int<200>,
+                       SExp<Op<OpCode::Eq>, Int<3>, Var0>, Int<300>>;
+
+  static_assert(
+      is_same_v<Eval_t<CondExp, Env<Binding<Var0, Int<3>>>>, Int<300>>);
+  static_assert(
+      is_same_v<Eval_t<CondExp, Env<Binding<Var0, Int<42>>>>, NoMatchError>);
+
+  /**********************
    Let
    **********************/
 

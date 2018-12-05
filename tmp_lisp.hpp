@@ -40,6 +40,8 @@ enum class OpCode {
 
 template <OpCode op> struct Op {};
 
+struct NoMatchError {};
+
 /**********************
    Variables, Bindings
 ***********************/
@@ -184,6 +186,10 @@ template <OpCode opcode, class Env> struct Eval<Op<opcode>, Env> {
   using type = Op<opcode>;
 };
 
+template <class Env> struct Eval<NoMatchError, Env> {
+  using type = NoMatchError;
+};
+
 template <class Operator, class... Operands, class Env>
 struct Eval<SExp<Operator, Operands...>, Env> {
   using type = Apply_t<Eval_t<Operator, Env>, Eval_t<Operands, Env>...>;
@@ -285,3 +291,19 @@ struct Apply<Lambda<Body, Env, Params...>, Args...> {
 ******************/
 
 template <class Env, class Body> using Let = SExp<Lambda<Body, Env>>;
+
+namespace detail {
+
+template <class... Cases> struct CondImpl;
+
+template <> struct CondImpl<> { using type = NoMatchError; };
+
+template <class Cond, class IfMatch, class... RemainingCases>
+struct CondImpl<Cond, IfMatch, RemainingCases...> {
+  using type = If<Cond, IfMatch, Result_t<CondImpl<RemainingCases...>>>;
+};
+
+} // namespace detail
+
+template <class... Cases>
+using Cond = detail::Result_t<detail::CondImpl<Cases...>>;
