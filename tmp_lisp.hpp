@@ -49,8 +49,6 @@ enum class OpCode {
 
 template <OpCode op> struct Op {};
 
-struct NoMatchError {};
-
 /**********************
    Variables, Bindings
 ***********************/
@@ -194,10 +192,6 @@ template <OpCode opcode, class Env> struct Eval_<Op<opcode>, Env> {
   using type = Op<opcode>;
 };
 
-template <class Env> struct Eval_<NoMatchError, Env> {
-  using type = NoMatchError;
-};
-
 template <class Operator, class... Operands, class Env>
 struct Eval_<SExp<Operator, Operands...>, Env> {
   using type = Apply<Eval<Operator, Env>, Eval<Operands, Env>...>;
@@ -302,16 +296,19 @@ template <class Env, class Body> using Let = SExp<Lambda<Body, Env>>;
 
 namespace detail {
 
-template <class... Cases> struct CondImpl;
+template <class DefaultExp, class... Cases> struct CondImpl;
 
-template <> struct CondImpl<> { using type = NoMatchError; };
+template <class DefaultExp> struct CondImpl<DefaultExp> {
+  using type = DefaultExp;
+};
 
-template <class Cond, class IfMatch, class... RemainingCases>
-struct CondImpl<Cond, IfMatch, RemainingCases...> {
-  using type = If<Cond, IfMatch, Result_t<CondImpl<RemainingCases...>>>;
+template <class DefaultExp, class Cond, class IfMatch, class... RemainingCases>
+struct CondImpl<DefaultExp, Cond, IfMatch, RemainingCases...> {
+  using type =
+      If<Cond, IfMatch, Result_t<CondImpl<DefaultExp, RemainingCases...>>>;
 };
 
 } // namespace detail
 
-template <class... Cases>
-using Cond = detail::Result_t<detail::CondImpl<Cases...>>;
+template <class DefaultExp, class... Cases>
+using Cond = detail::Result_t<detail::CondImpl<DefaultExp, Cases...>>;

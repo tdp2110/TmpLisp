@@ -228,13 +228,14 @@ int main() {
    Cond
   *********************/
 
-  using CondExp = Cond<SExp<Op<OpCode::Eq>, Int<1>, Var0>, Int<100>,
+  using DefaultExp = Int<404>;
+  using CondExp = Cond<DefaultExp, SExp<Op<OpCode::Eq>, Int<1>, Var0>, Int<100>,
                        SExp<Op<OpCode::Eq>, Int<2>, Var0>, Int<200>,
                        SExp<Op<OpCode::Eq>, Int<3>, Var0>, Int<300>>;
 
   static_assert(is_same_v<Eval<CondExp, Env<Binding<Var0, Int<3>>>>, Int<300>>);
   static_assert(
-      is_same_v<Eval<CondExp, Env<Binding<Var0, Int<42>>>>, NoMatchError>);
+      is_same_v<Eval<CondExp, Env<Binding<Var0, Int<42>>>>, DefaultExp>);
 
   /**********************
    Let
