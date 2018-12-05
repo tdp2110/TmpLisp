@@ -294,21 +294,17 @@ struct Apply_<Lambda<Body, Env, Params...>, Args...> {
 
 template <class Env, class Body> using Let = SExp<Lambda<Body, Env>>;
 
-namespace detail {
+template <class DefaultExp, class... Cases> struct Cond_;
 
-template <class DefaultExp, class... Cases> struct CondImpl;
-
-template <class DefaultExp> struct CondImpl<DefaultExp> {
+template <class DefaultExp> struct Cond_<DefaultExp> {
   using type = DefaultExp;
 };
 
 template <class DefaultExp, class Cond, class IfMatch, class... RemainingCases>
-struct CondImpl<DefaultExp, Cond, IfMatch, RemainingCases...> {
+struct Cond_<DefaultExp, Cond, IfMatch, RemainingCases...> {
   using type =
-      If<Cond, IfMatch, Result_t<CondImpl<DefaultExp, RemainingCases...>>>;
+      If<Cond, IfMatch, detail::Result_t<Cond_<DefaultExp, RemainingCases...>>>;
 };
 
-} // namespace detail
-
 template <class DefaultExp, class... Cases>
-using Cond = detail::Result_t<detail::CondImpl<DefaultExp, Cases...>>;
+using Cond = detail::Result_t<Cond_<DefaultExp, Cases...>>;
