@@ -118,24 +118,29 @@ int main() {
    ****************/
 
   using FactVar = Var<12345>;
-  using FactExp = Lambda<If<SExp<Op<OpCode::Leq>, Var0, Zero>, One,
-                         SExp<Op<OpCode::Mul>, Var0,
-                              SExp<FactVar, SExp<Op<OpCode::Sub>, Var0, One>>>>,
-                      EmptyEnv, Var0>;
+  using FactExp =
+      Lambda<If<SExp<Op<OpCode::Leq>, Var0, Zero>, One,
+                SExp<Op<OpCode::Mul>, Var0,
+                     SExp<FactVar, SExp<Op<OpCode::Sub>, Var0, One>>>>,
+             EmptyEnv, Var0>;
 
-  using ZeroFactorial = Eval_t<SExp<FactExp, Zero>, Env<Binding<FactVar, FactExp>>>;
+  using ZeroFactorial =
+      Eval_t<SExp<FactExp, Zero>, Env<Binding<FactVar, FactExp>>>;
 
   static_assert(is_same_v<ZeroFactorial, One>);
 
-  using OneFactorial = Eval_t<SExp<FactExp, One>, Env<Binding<FactVar, FactExp>>>;
+  using OneFactorial =
+      Eval_t<SExp<FactExp, One>, Env<Binding<FactVar, FactExp>>>;
 
   static_assert(is_same_v<OneFactorial, One>);
 
-  using TwoFactorial = Eval_t<SExp<FactExp, Two>, Env<Binding<FactVar, FactExp>>>;
+  using TwoFactorial =
+      Eval_t<SExp<FactExp, Two>, Env<Binding<FactVar, FactExp>>>;
 
   static_assert(is_same_v<TwoFactorial, Two>);
 
-  using SixFactorial = Eval_t<SExp<FactExp, Int<6>>, Env<Binding<FactVar, FactExp>>>;
+  using SixFactorial =
+      Eval_t<SExp<FactExp, Int<6>>, Env<Binding<FactVar, FactExp>>>;
 
   static_assert(is_same_v<SixFactorial, Int<720>>);
 
@@ -228,7 +233,36 @@ int main() {
   static_assert(is_same_v<Eval_t<LetExp1, Env<Binding<Var2, Three>>>, Int<6>>);
 
   using FactArg = Var<4324343>;
-  using FactApplication = Let<Env<Binding<FactVar, FactExp>>, SExp<FactVar, FactArg>>;
+  using FactApplication =
+      Let<Env<Binding<FactVar, FactExp>>, SExp<FactVar, FactArg>>;
 
-  static_assert(is_same_v<Eval_t<FactApplication, Env<Binding<FactArg, Int<7>>>>, Int<5040>>);
+  static_assert(
+      is_same_v<Eval_t<FactApplication, Env<Binding<FactArg, Int<7>>>>,
+                Int<5040>>);
+
+  /***********************
+    higher-order functions
+  **********************/
+
+  using MapCarVar = Var<111432>;
+  using ListVar = Var<99234>;
+  using FuncVar = Var<999434>;
+
+  using MapCarExp =
+      Lambda<If<SExp<Op<OpCode::IsNull>, ListVar>, EmptyList,
+                Cons<SExp<FuncVar, SExp<Op<OpCode::Car>, ListVar>>,
+                     SExp<MapCarVar, FuncVar, SExp<Op<OpCode::Cdr>, ListVar>>>>,
+             EmptyEnv, FuncVar, ListVar>;
+
+  using SomeList = Cons<Int<2>, Cons<Int<4>, Cons<Int<6>, EmptyList>>>;
+  using DoubleParam = Var<923098>;
+  using Double =
+      Lambda<SExp<Op<OpCode::Mul>, Int<2>, DoubleParam>, EmptyEnv, DoubleParam>;
+
+  using MappedList = Eval_t<Let<Env<Binding<MapCarVar, MapCarExp>>,
+                                SExp<MapCarVar, Double, SomeList>>,
+                            EmptyEnv>;
+  static_assert(
+      is_same_v<MappedList,
+                Cons<Int<4>, Cons<Int<8>, Cons<Int<12>, EmptyList>>>>);
 }
