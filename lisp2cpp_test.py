@@ -50,6 +50,35 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(
             self.tokenize(expr),
             [QUOTE_LPAREN, Var(varname), RPAREN])
+
+class ParserTest(unittest.TestCase):
+    @staticmethod
+    def parse(text):
+        return Parser.parse(text)
+    
+    def test_1(self):
+        varname = 'var'
+        expr = '(* {var} 1)'.format(var=varname)
+
+        parse = self.parse(expr)
+
+        self.assertIsInstance(parse, SExp)
+        self.assertEqual(parse.operator, Ops.Mul)
+        self.assertEqual(parse.operands,
+                         [Var(varname), Int(1)])
+
+    def test_lambda(self):
+        varname = 'x'
+        expr = '(lambda ({varname}) (+ {varname} 1))'.format(varname=varname)
+
+        parse = self.parse(expr)
+
+        expectedBody = SExp(operator=Ops.Add,
+                            operands=[Var(varname), Int(1)])
+        
+        self.assertIsInstance(parse, LambdaExp)
+        self.assertEqual(parse.arglist, [Var(varname)])
+        self.assertEqual(parse.body, expectedBody)
         
 if __name__ == '__main__':
     unittest.main()

@@ -1,3 +1,4 @@
+from collections import namedtuple
 import re
 import sys
 from enum import Enum
@@ -6,6 +7,7 @@ from enum import Enum
 LPAREN = '('
 RPAREN = ')'
 QUOTE_LPAREN = '\'('
+LAMBDA = 'lambda'
 
 class Ops(Enum):
     Add = '+'
@@ -23,7 +25,7 @@ class Ops(Enum):
     IsNull = 'null?'
 
 class Keywords(Enum):
-    Lambda = 'lambda'
+    Lambda = LAMBDA
     
 class Var:
     def __init__(self, val):
@@ -31,7 +33,10 @@ class Var:
         self.val = val
 
     def __eq__(self, other):
-        return self.val == other.val
+        try:
+            return self.val == other.val
+        except AttributeError:
+            return self.val == other
 
     def __str__(self):
         return 'Var({})'.format(self.value)
@@ -44,13 +49,16 @@ class Int:
             raise ValueError
 
     def __eq__(self, other):
-        return self.val == other.val
+        try:
+            return self.val == other.val
+        except AttributeError:
+            return self.val == other
 
 class Tokenizer:
     def __init__(self, text):
         self.tokens = list(self.tokenize(text))
 
-    def cur_tok(self):
+    def top(self):
         return self.tokens[0]
 
     def peek(self):
@@ -58,6 +66,9 @@ class Tokenizer:
 
     def pop(self):
         self.tokens.pop(0)
+
+    def num_tokens(self):
+        return len(self.tokens)
 
     @staticmethod
     def classify_item(item):
@@ -99,17 +110,78 @@ class Tokenizer:
         for chunk in text.split():
             yield from cls.tokenize_chunk(chunk)
 
+SExp = namedtuple('SExp', ['operator', 'operands'])
+LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
+
 class Parser:
     @classmethod
-    def parse(cls, txt):
+    def parse(cls, text):
         tokenizer = Tokenizer(text)
-        return cls(tokenizer).parse()
+        return cls(tokenizer).parse_exp()
 
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
 
-    def parse(self):
-        pass
+    def parse_item(self):
+        if self.tokenizer.top() == LPAREN:
+            self.tokenizer.pop()
+            if self.tokenizer.top() == Keywords.Lambda:
+                self.tokenizer.pop()
+                res = self.parse_lambda()
+            else:
+                res = self.parse_s_exp_body()
+            assert self.tokenizer.top() == RPAREN
+            self.tokenizer.pop()
+        elif self.tokenizer.top() == LAMBDA:
+            self.tokenizer.pop()
+            res = self.parse_lambda()
+        else:
+            res = self.parse_atom()
+
+        return res
+
+    def parse_exp(self):
+        res = self.parse_item()
+        assert self.tokenizer.num_tokens() == 0
+        return res
+
+    def parse_lambda(self):
+        def parse_arglist():
+            assert self.tokenizer.top() == LPAREN
+            self.tokenizer.pop()
+            res = []
+            while self.tokenizer.top() != RPAREN:
+                assert isinstance(self.tokenizer.top(),
+                                  Var)
+                res.append(self.tokenizer.top())
+                self.tokenizer.pop()
+            self.tokenizer.pop()
+            return res
+                
+        def parse_body():
+            return self.parse_item()
+        
+        return LambdaExp(
+            arglist=parse_arglist(),
+            body=parse_body())
+    
+    def parse_atom(self):
+        next_tok = self.tokenizer.top()
+
+        if isinstance(next_tok, (Var, Int, Ops)):
+            self.tokenizer.pop()
+            return next_tok
+
+        assert False, next_tok
+        
+    def parse_s_exp_body(self):
+        operator = self.parse_item()
+        operands = []
+        while self.tokenizer.top() != RPAREN:
+            operands.append(self.parse_item())
+
+        return SExp(operator=operator,
+                    operands=operands)
             
 def main():
     lines = sys.stdin.readlines()
