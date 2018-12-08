@@ -5,6 +5,7 @@ from enum import Enum
 
 LPAREN = '('
 RPAREN = ')'
+QUOTE_LPAREN = '\'('
 
 class Ops(Enum):
     Add = '+'
@@ -78,18 +79,38 @@ class Tokenizer:
     def tokenize_chunk(cls, chunk):
         m = re.match('([\(]*)([^\(\)]*)([\)]*)$', chunk)
 
-        for group in m.groups():
+        if m:
+            for group in m.groups():
+                if group:
+                    if group[0] == LPAREN or group[0] == RPAREN:
+                        yield from group
+                    else:
+                        yield cls.classify_item(group)
+        m = re.match('^\'\((.*)', chunk)
+
+        if m:
+            yield QUOTE_LPAREN
+            group = m.groups()[0]
             if group:
-                if group[0] == LPAREN or group[0] == RPAREN:
-                    yield from group
-                else:
-                    yield cls.classify_item(group)
+                yield from cls.tokenize(group)
 
     @classmethod
     def tokenize(cls, text):
         for chunk in text.split():
             yield from cls.tokenize_chunk(chunk)
 
+class Parser:
+    @classmethod
+    def parse(cls, txt):
+        tokenizer = Tokenizer(text)
+        return cls(tokenizer).parse()
+
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
+
+    def parse(self):
+        pass
+            
 def main():
     lines = sys.stdin.readlines()
     tokens = Tokenizer(''.join(lines)).tokens
