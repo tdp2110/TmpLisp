@@ -8,6 +8,7 @@ LPAREN = '('
 RPAREN = ')'
 QUOTE_LPAREN = '\'('
 LAMBDA = 'lambda'
+SEMICOLON = ';'
 
 class Ops(Enum):
     Add = '+'
@@ -84,20 +85,24 @@ class Tokenizer:
                     return Int(item)
                 except Exception:
                     #TODO need some regex for variables
+                    assert re.match('^[a-zA-Z_]+[a-zA-Z_0-9\!\-\?]*$', item), (item, type(item))
                     return Var(item)
         
     @classmethod
     def tokenize_chunk(cls, chunk):
-        m = re.match('([\(]*)([^\(\)]*)([\)]*)$', chunk)
+        m = re.match('^([\)\(]+)(.*)$', chunk)
 
         if m:
-            for group in m.groups():
-                if group:
-                    if group[0] == LPAREN or group[0] == RPAREN:
-                        yield from group
-                    else:
-                        yield cls.classify_item(group)
-        m = re.match('^\'\((.*)', chunk)
+            leading_parens = m.groups()[0]
+            yield from leading_parens
+
+            rest = m.groups()[1]
+            if rest:
+                yield from cls.tokenize_chunk(rest)
+
+            return
+        
+        m = re.match('^\'\((.*)$', chunk)
 
         if m:
             yield QUOTE_LPAREN
@@ -105,13 +110,30 @@ class Tokenizer:
             if group:
                 yield from cls.tokenize(group)
 
+            return
+
+        m = re.match('^([^\(\);]+)(.*)$', chunk)
+
+        if m:
+            yield cls.classify_item(m.groups()[0])
+            rest = m.groups()[1]
+            if rest:
+                yield from cls.tokenize_chunk(rest)
+
+            return
+
+        if chunk[0] == SEMICOLON:
+            return
+
     @classmethod
     def tokenize(cls, text):
         for chunk in text.split():
-            yield from cls.tokenize_chunk(chunk)
+            yield from cls.tokenize_chunk(chunk)        
 
+            
 SExp = namedtuple('SExp', ['operator', 'operands'])
 LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
+
 
 class Parser:
     @classmethod

@@ -20,8 +20,30 @@ class TokenizerTest(unittest.TestCase):
             [LPAREN, Ops.Mul, Var(var0), Var(var1), RPAREN, RPAREN])
 
     def test_2(self):
-        var0 = 'var0'
         expr = '( lambda (x) (+ x 1))'
+        tokens = self.tokenize(expr)
+        x_var = Var('x')
+        self.assertEqual(
+            tokens,
+            [LPAREN, Keywords.Lambda, LPAREN, x_var, RPAREN,
+             LPAREN, Ops.Add, x_var, Int(1), RPAREN, RPAREN])
+
+    def test_comments_1(self):
+        expr = ')(x;y()'
+        tokens = self.tokenize(expr)
+        self.assertEqual(
+            tokens,
+            [RPAREN, LPAREN, Var('x')])
+        
+    def test_comments_2(self):
+        expr = ')(x;y()\n);omg'
+        tokens = self.tokenize(expr)
+        self.assertEqual(
+            tokens,
+            [RPAREN, LPAREN, Var('x'), RPAREN])
+        
+    def test_no_whitespace(self):
+        expr = '(lambda(x)(+ x 1))'
         tokens = self.tokenize(expr)
         x_var = Var('x')
         self.assertEqual(
@@ -31,7 +53,6 @@ class TokenizerTest(unittest.TestCase):
 
     def test_emptylist_1(self):
         expr = '\'()'
-
         self.assertEqual(
             self.tokenize(expr),
             [QUOTE_LPAREN, RPAREN])
