@@ -100,6 +100,22 @@ class ParserTest(unittest.TestCase):
         self.assertIsInstance(parse, LambdaExp)
         self.assertEqual(parse.arglist, [Var(varname)])
         self.assertEqual(parse.body, expectedBody)
+
+class Lisp2CppTest(unittest.TestCase):
+    @staticmethod
+    def codegen(text):
+        return Lisp2Cpp(text).codegen()
+    
+    def test_varmap_1(self):
+        exp = '(lambda (x y) (+ x y z))'
+        lisp2cpp = Lisp2Cpp(exp)
+
+        self.assertEqual(set(lisp2cpp.varmap), {'x', 'y', 'z'})
+
+    def test_codegen_1(self):
+        exp = '(lambda (x y) (+ x 1 y))'
+
+        self.codegen(exp)
         
 if __name__ == '__main__':
     unittest.main()

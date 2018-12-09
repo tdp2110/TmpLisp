@@ -55,6 +55,10 @@ class Int:
         except AttributeError:
             return self.val == other
 
+SExp = namedtuple('SExp', ['operator', 'operands'])
+LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
+
+
 class Tokenizer:
     def __init__(self, text):
         self.tokens = list(self.tokenize(text))
@@ -131,10 +135,6 @@ class Tokenizer:
             yield from cls.tokenize_chunk(chunk)        
 
             
-SExp = namedtuple('SExp', ['operator', 'operands'])
-LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
-
-
 class Parser:
     @classmethod
     def parse(cls, text):
@@ -204,11 +204,76 @@ class Parser:
 
         return SExp(operator=operator,
                     operands=operands)
-            
+
+    
+class Lisp2Cpp:
+    include = 'include "tmp_lisp.hpp";\n\n'
+    
+    def __init__(self, text):
+        self.parse = Parser.parse(text)
+        self.varmap = {}
+        self.compute_varmap(self.parse, self.varmap)
+
+    @classmethod
+    def compute_varmap(cls, parse, varmap):
+        if isinstance(parse, SExp):
+            cls.compute_varmap(parse.operator, varmap)
+            for operand in parse.operands:
+                cls.compute_varmap(operand, varmap)
+        if isinstance(parse, LambdaExp):
+            for exp in parse.arglist:
+                cls.compute_varmap(exp, varmap)
+            cls.compute_varmap(parse.body, varmap)
+        if isinstance(parse, Var):
+            if parse.val not in varmap:
+                varmap[parse.val] = len(varmap)
+
+    def codegen_varlist(self):
+        res = ''
+        for name, ix in self.varmap.items():
+            res += 'using Var_{name} = Var<{ix}>;\n'.format(
+                name=name,
+                ix=ix
+                )
+        return res + '\n';
+                
+    def codegen(self):
+        return self.include + \
+            self.codegen_varlist() + \
+            self.codegen_(self.parse) + ';'
+                
+    def codegen_(self, parse):
+        if isinstance(parse, LambdaExp):
+            return self.codegen_lambda(parse)
+        elif isinstance(parse, SExp):
+            return self.codegen_s_exp(parse)
+        elif isinstance(parse, Int):
+            return 'Int<{}>'.format(parse.val)
+        elif isinstance(parse, Var):
+            return 'Var<{}>'.format(self.varmap[parse.val])
+        elif isinstance(parse, Ops):
+            return 'Op<OpCode::{}>'.format(parse.name)
+        elif isinstance(parse, bool):
+            return 'Bool<{}>'.format(parse)
+
+    def codegen_s_exp(self, parse):
+        return 'SExp<{operator}, {operands_codegen}>'.format(
+            operator=self.codegen_(parse.operator),
+            operands_codegen=','.join(self.codegen_(operand)
+                                      for operand in parse.operands)
+            )
+
+    def codegen_lambda(self, parse):
+        return 'Lambda<{body_codegen}, EmptyEnv, {params_codegen}>'.format(
+            body_codegen=self.codegen_(parse.body),
+            params_codegen=','.join(self.codegen_(param)
+                                    for param in parse.arglist)
+            )
+
+
 def main():
     lines = sys.stdin.readlines()
-    tokens = Tokenizer(''.join(lines)).tokens
-    print('\n'.join(tokens))    
+    print(Lisp2Cpp(''.join(lines)).codegen())
     
 if __name__ == '__main__':
     main()
