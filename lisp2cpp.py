@@ -42,19 +42,6 @@ class Var:
     def __str__(self):
         return 'Var({})'.format(self.value)
 
-class Int:
-    def __init__(self, val):
-        if isinstance(val, int) or re.match('^[-+]?[0-9]+$', val):
-            self.val = int(val)
-        else:
-            raise ValueError
-
-    def __eq__(self, other):
-        try:
-            return self.val == other.val
-        except AttributeError:
-            return self.val == other
-
 SExp = namedtuple('SExp', ['operator', 'operands'])
 LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
 
@@ -86,7 +73,7 @@ class Tokenizer:
                 return Keywords(item)
             except ValueError:
                 try:
-                    return Int(item)
+                    return int(item)
                 except Exception:
                     #TODO need some regex for variables
                     assert re.match('^[a-zA-Z_]+[a-zA-Z_0-9\!\-\?]*$', item), (item, type(item))
@@ -190,7 +177,7 @@ class Parser:
     def parse_atom(self):
         next_tok = self.tokenizer.top()
 
-        if isinstance(next_tok, (Var, Int, Ops)):
+        if isinstance(next_tok, (Var, int, bool, Ops)):
             self.tokenizer.pop()
             return next_tok
 
@@ -207,6 +194,9 @@ class Parser:
 
     
 class Lisp2Cpp:
+    class ConvertError(Exception):
+        pass
+    
     include = 'include "tmp_lisp.hpp";\n\n'
     
     def __init__(self, text):
@@ -244,31 +234,29 @@ class Lisp2Cpp:
                 
     def codegen_(self, parse):
         if isinstance(parse, LambdaExp):
-            return self.codegen_lambda(parse)
+            return 'Lambda<{body_codegen}, EmptyEnv, {params_codegen}>'.format(
+                body_codegen=self.codegen_(parse.body),
+                params_codegen=','.join(self.codegen_(param)
+                                        for param in parse.arglist)
+                )
         elif isinstance(parse, SExp):
-            return self.codegen_s_exp(parse)
-        elif isinstance(parse, Int):
-            return 'Int<{}>'.format(parse.val)
+            return 'SExp<{operator}, {operands_codegen}>'.format(
+                operator=self.codegen_(parse.operator),
+                operands_codegen=','.join(self.codegen_(operand)
+                                          for operand in parse.operands)
+                )
+        elif isinstance(parse, int):
+            return 'Int<{}>'.format(parse)
+        elif isinstance(parse, bool):
+            return 'Bool<{}>'.format(str(parse).lower())
         elif isinstance(parse, Var):
             return 'Var<{}>'.format(self.varmap[parse.val])
         elif isinstance(parse, Ops):
             return 'Op<OpCode::{}>'.format(parse.name)
         elif isinstance(parse, bool):
             return 'Bool<{}>'.format(parse)
-
-    def codegen_s_exp(self, parse):
-        return 'SExp<{operator}, {operands_codegen}>'.format(
-            operator=self.codegen_(parse.operator),
-            operands_codegen=','.join(self.codegen_(operand)
-                                      for operand in parse.operands)
-            )
-
-    def codegen_lambda(self, parse):
-        return 'Lambda<{body_codegen}, EmptyEnv, {params_codegen}>'.format(
-            body_codegen=self.codegen_(parse.body),
-            params_codegen=','.join(self.codegen_(param)
-                                    for param in parse.arglist)
-            )
+        else:
+            raise self.ConvertError('don\'t know how to convert{} to CPP'.format(parse))
 
 
 def main():

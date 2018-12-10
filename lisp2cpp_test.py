@@ -26,7 +26,7 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(
             tokens,
             [LPAREN, Keywords.Lambda, LPAREN, x_var, RPAREN,
-             LPAREN, Ops.Add, x_var, Int(1), RPAREN, RPAREN])
+             LPAREN, Ops.Add, x_var, 1, RPAREN, RPAREN])
 
     def test_comments_1(self):
         expr = ')(x;y()'
@@ -49,7 +49,7 @@ class TokenizerTest(unittest.TestCase):
         self.assertEqual(
             tokens,
             [LPAREN, Keywords.Lambda, LPAREN, x_var, RPAREN,
-             LPAREN, Ops.Add, x_var, Int(1), RPAREN, RPAREN])
+             LPAREN, Ops.Add, x_var, 1, RPAREN, RPAREN])
 
     def test_emptylist_1(self):
         expr = '\'()'
@@ -86,7 +86,7 @@ class ParserTest(unittest.TestCase):
         self.assertIsInstance(parse, SExp)
         self.assertEqual(parse.operator, Ops.Mul)
         self.assertEqual(parse.operands,
-                         [Var(varname), Int(1)])
+                         [Var(varname), 1])
 
     def test_lambda(self):
         varname = 'x'
@@ -95,7 +95,7 @@ class ParserTest(unittest.TestCase):
         parse = self.parse(expr)
 
         expectedBody = SExp(operator=Ops.Add,
-                            operands=[Var(varname), Int(1)])
+                            operands=[Var(varname), 1])
         
         self.assertIsInstance(parse, LambdaExp)
         self.assertEqual(parse.arglist, [Var(varname)])
