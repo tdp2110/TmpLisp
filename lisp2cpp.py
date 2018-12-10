@@ -62,22 +62,28 @@ class Tokenizer:
     def num_tokens(self):
         return len(self.tokens)
 
-    @staticmethod
-    def classify_item(item):
+    @classmethod
+    def bool_reader(cls, elt):
+        if elt == '#t':
+            return True
+        if elt == '#f':
+            return False
+
+        raise ValueErro
+    
+    @classmethod
+    def classify_item(cls, item):
         if item == LPAREN or item == RPAREN:
             return item
-        try:
-            return Ops(item)
-        except ValueError:
+
+        for converter in [Ops, Keywords, int, cls.bool_reader]:
             try:
-                return Keywords(item)
-            except ValueError:
-                try:
-                    return int(item)
-                except Exception:
-                    #TODO need some regex for variables
-                    assert re.match('^[a-zA-Z_]+[a-zA-Z_0-9\!\-\?]*$', item), (item, type(item))
-                    return Var(item)
+                return converter(item)
+            except:
+                pass
+            
+        assert re.match('^[a-zA-Z_]+[a-zA-Z_0-9\!\-\?]*$', item), (item, type(item))
+        return Var(item)
         
     @classmethod
     def tokenize_chunk(cls, chunk):
@@ -245,10 +251,10 @@ class Lisp2Cpp:
                 operands_codegen=','.join(self.codegen_(operand)
                                           for operand in parse.operands)
                 )
-        elif isinstance(parse, int):
-            return 'Int<{}>'.format(parse)
         elif isinstance(parse, bool):
             return 'Bool<{}>'.format(str(parse).lower())
+        elif isinstance(parse, int):
+            return 'Int<{}>'.format(parse)
         elif isinstance(parse, Var):
             return 'Var<{}>'.format(self.varmap[parse.val])
         elif isinstance(parse, Ops):

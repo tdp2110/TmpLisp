@@ -72,6 +72,14 @@ class TokenizerTest(unittest.TestCase):
             self.tokenize(expr),
             [QUOTE_LPAREN, Var(varname), RPAREN])
 
+    def test_booleans(self):
+        expr = '((#t)(#f)(42));asdfasdfasdf'
+
+        self.assertEqual(
+            self.tokenize(expr),
+            [LPAREN, LPAREN, True, RPAREN, LPAREN, False,
+             RPAREN, LPAREN, 42, RPAREN, RPAREN])
+
 class ParserTest(unittest.TestCase):
     @staticmethod
     def parse(text):
@@ -116,6 +124,11 @@ class Lisp2CppTest(unittest.TestCase):
         exp = '(lambda (x y) (+ x 1 y))'
 
         self.codegen(exp)
+
+    def test_codegen_2(self):
+        exp = '(or #t #f #t)'
+
+        assert False, self.codegen(exp)
         
 if __name__ == '__main__':
     unittest.main()
