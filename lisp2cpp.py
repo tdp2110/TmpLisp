@@ -27,6 +27,7 @@ class Ops(Enum):
 
 class Keywords(Enum):
     Lambda = LAMBDA
+    If = 'if'
     
 class Var:
     def __init__(self, val):
@@ -44,17 +45,22 @@ class Var:
 
 SExp = namedtuple('SExp', ['operator', 'operands'])
 LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
-
+IfExp = namedtuple('IfExp', ['cond', 'if_true', 'if_false'])
 
 class Tokenizer:
+    class Error(Exception):
+        pass
+
+    @classmethod
+    def require(cls, cond, msg=None):
+        if not cond:
+            raise self.Error(msg)
+    
     def __init__(self, text):
         self.tokens = list(self.tokenize(text))
 
     def top(self):
         return self.tokens[0]
-
-    def peek(self):
-        return self.tokens[1]
 
     def pop(self):
         self.tokens.pop(0)
@@ -69,7 +75,7 @@ class Tokenizer:
         if elt == '#f':
             return False
 
-        raise ValueErro
+        raise ValueError
     
     @classmethod
     def classify_item(cls, item):
@@ -82,7 +88,9 @@ class Tokenizer:
             except:
                 pass
             
-        assert re.match('^[a-zA-Z_]+[a-zA-Z_0-9\!\-\?]*$', item), (item, type(item))
+        cls.require(re.match('^[a-zA-Z_]+[a-zA-Z_0-9\!\-\?#]*$', item),
+                     item)
+                     
         return Var(item)
         
     @classmethod
@@ -129,6 +137,14 @@ class Tokenizer:
 
             
 class Parser:
+    class Error(Exception):
+        pass
+
+    @classmethod
+    def require(cls, cond, msg=None):
+        if not cond:
+            raise self.Error(msg)
+    
     @classmethod
     def parse(cls, text):
         tokenizer = Tokenizer(text)
@@ -137,19 +153,26 @@ class Parser:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
 
+    def pop_lparen_or_die(self):
+        self.require(self.tokenizer.top() == LPAREN)
+        self.tokenizer.pop()
+
+    def pop_rparen_or_die(self):
+        self.require(self.tokenizer.top() == RPAREN)
+        self.tokenizer.pop()
+        
     def parse_item(self):
         if self.tokenizer.top() == LPAREN:
             self.tokenizer.pop()
             if self.tokenizer.top() == Keywords.Lambda:
                 self.tokenizer.pop()
                 res = self.parse_lambda()
+            elif self.tokenizer.top() == Keywords.If:
+                self.tokenizer.pop()
+                res = self.parse_if()
             else:
                 res = self.parse_s_exp_body()
-            assert self.tokenizer.top() == RPAREN
-            self.tokenizer.pop()
-        elif self.tokenizer.top() == LAMBDA:
-            self.tokenizer.pop()
-            res = self.parse_lambda()
+            self.pop_rparen_or_die()
         else:
             res = self.parse_atom()
 
@@ -157,17 +180,28 @@ class Parser:
 
     def parse_exp(self):
         res = self.parse_item()
-        assert self.tokenizer.num_tokens() == 0
+        self.require(self.tokenizer.num_tokens() == 0)
         return res
 
+    def parse_if(self):
+        cond = self.parse_item()
+        
+        if_true = self.parse_item()
+
+        if_false = self.parse_item()
+
+        return IfExp(cond=cond,
+                     if_true=if_true,
+                     if_false=if_false)
+    
     def parse_lambda(self):
         def parse_arglist():
-            assert self.tokenizer.top() == LPAREN
+            self.require(self.tokenizer.top() == LPAREN)
             self.tokenizer.pop()
             res = []
             while self.tokenizer.top() != RPAREN:
-                assert isinstance(self.tokenizer.top(),
-                                  Var)
+                self.require(isinstance(self.tokenizer.top(),
+                                        Var))
                 res.append(self.tokenizer.top())
                 self.tokenizer.pop()
             self.tokenizer.pop()
@@ -187,7 +221,7 @@ class Parser:
             self.tokenizer.pop()
             return next_tok
 
-        assert False, next_tok
+        self.require(False, next_tok)
         
     def parse_s_exp_body(self):
         operator = self.parse_item()
@@ -250,6 +284,12 @@ class Lisp2Cpp:
                 operator=self.codegen_(parse.operator),
                 operands_codegen=','.join(self.codegen_(operand)
                                           for operand in parse.operands)
+                )
+        elif isinstance(parse, IfExp):
+            return 'If<{cond}, {if_true}, {if_false}>'.format(
+                cond=self.codegen_(parse.cond),
+                if_true=self.codegen_(parse.if_true),
+                if_false=self.codegen_(parse.if_false)
                 )
         elif isinstance(parse, bool):
             return 'Bool<{}>'.format(str(parse).lower())

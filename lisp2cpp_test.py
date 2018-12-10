@@ -129,6 +129,12 @@ class Lisp2CppTest(unittest.TestCase):
         exp = '(or #t #f #t)'
 
         assert False, self.codegen(exp)
+
+    def test_codegen_3(self):
+        exp = '(if #t 1 3)'
+
+        assert False, self.codegen(exp)
+
         
 if __name__ == '__main__':
     unittest.main()
