@@ -135,6 +135,10 @@ class Lisp2CppTest(unittest.TestCase):
 
         assert False, self.codegen(exp)
 
+    def test_codegen_4(self):
+        exp = '(cons 0 (cons 1 (cons 2 3)))'
+
+        assert False, self.codegen(exp)
         
 if __name__ == '__main__':
     unittest.main()

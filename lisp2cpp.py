@@ -143,7 +143,7 @@ class Parser:
     @classmethod
     def require(cls, cond, msg=None):
         if not cond:
-            raise self.Error(msg)
+            raise cls.Error(msg)
     
     @classmethod
     def parse(cls, text):
