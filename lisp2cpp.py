@@ -28,6 +28,7 @@ class Ops(Enum):
 class Keywords(Enum):
     Lambda = LAMBDA
     If = 'if'
+    Let = 'let'
     
 class Var:
     def __init__(self, val):
@@ -46,6 +47,8 @@ class Var:
 SExp = namedtuple('SExp', ['operator', 'operands'])
 LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
 IfExp = namedtuple('IfExp', ['cond', 'if_true', 'if_false'])
+Binding = namedtuple('Binding', ['var', 'value'])
+LetExp = namedtuple('LetExp', ['bindings', 'body'])
 
 class Tokenizer:
     class Error(Exception):
@@ -170,6 +173,9 @@ class Parser:
             elif self.tokenizer.top() == Keywords.If:
                 self.tokenizer.pop()
                 res = self.parse_if()
+            elif self.tokenizer.top() == Keywords.Let:
+                self.tokenizer.pop()
+                res = self.parse_let()
             else:
                 res = self.parse_s_exp_body()
             self.pop_rparen_or_die()
@@ -183,6 +189,9 @@ class Parser:
         self.require(self.tokenizer.num_tokens() == 0)
         return res
 
+    def parse_let(self):
+        raise NotImplementedErro
+    
     def parse_if(self):
         cond = self.parse_item()
         
