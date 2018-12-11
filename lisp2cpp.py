@@ -214,7 +214,30 @@ class Parser:
         return res
 
     def parse_let(self):
-        raise NotImplementedError
+        def parse_bindings():
+            res = []
+            while self.tokenizer.top().type == TokenType.LParen:
+                self.tokenizer.pop()
+                top = self.tokenizer.top()
+                self.require(top.type == TokenType.Var, top)
+                var = VarExp(top.value)
+                self.tokenizer.pop()
+                top = self.tokenizer.top()
+                value = self.parse_item()
+                self.pop_rparen_or_die()
+                res.append(Binding(var=var, value=value))
+            return res
+        
+        def parse_body():
+            return self.parse_item()
+        
+        self.pop_lparen_or_die()
+        bindings = parse_bindings()
+        self.pop_rparen_or_die()
+        
+        body = parse_body()
+
+        return LetExp(bindings=bindings, body=body)
 
     def parse_if(self):
         cond = self.parse_item()
@@ -233,7 +256,7 @@ class Parser:
             res = []
             while self.tokenizer.top().type != TokenType.RParen:
                 top = self.tokenizer.top()
-                self.require(top.type == TokenType.Var, self.tokenizer.top())
+                self.require(top.type == TokenType.Var, top)
                 res.append(VarExp(top.value))
                 self.tokenizer.pop()
             self.tokenizer.pop()
@@ -288,13 +311,17 @@ class Lisp2Cpp:
             cls.compute_varmap(parse.operator, varmap)
             for operand in parse.operands:
                 cls.compute_varmap(operand, varmap)
-        if isinstance(parse, LambdaExp):
+        elif isinstance(parse, LambdaExp):
             for exp in parse.arglist:
                 cls.compute_varmap(exp, varmap)
             cls.compute_varmap(parse.body, varmap)
-        if isinstance(parse, VarExp):
+        elif isinstance(parse, VarExp):
             if parse.name not in varmap:
                 varmap[parse.name] = len(varmap)
+        elif isinstance(parse, LetExp):
+            for binding in parse.bindings:
+                if binding.var.name not in varmap:
+                    varmap[binding.var.name] = len(varmap)
 
     def codegen_varlist(self):
         res = ''
@@ -314,13 +341,17 @@ class Lisp2Cpp:
         if isinstance(parse, LambdaExp):
             return 'Lambda<{body_codegen}, EmptyEnv, {params_codegen}>'.format(
                 body_codegen=self.codegen_(parse.body),
-                params_codegen=','.join(self.codegen_(param)
+                params_codegen=', '.join(self.codegen_(param)
                                         for param in parse.arglist)
             )
+        elif isinstance(parse, LetExp):
+            return 'Let<{env_codegen}, {body_codegen}>'.format(
+                env_codegen=self.env_codegen(parse.bindings),
+                body_codegen=self.codegen_(parse.body))
         elif isinstance(parse, SExp):
             return 'SExp<{operator}, {operands_codegen}>'.format(
                 operator=self.codegen_(parse.operator),
-                operands_codegen=','.join(self.codegen_(operand)
+                operands_codegen=', '.join(self.codegen_(operand)
                                           for operand in parse.operands)
             )
         elif isinstance(parse, IfExp):
@@ -342,7 +373,15 @@ class Lisp2Cpp:
         else:
             raise self.ConvertError(
                 'don\'t know how to convert{} to CPP'.format(parse))
-
+        
+    def env_codegen(self, bindings):
+        return 'Env<{bindings_codegen}>'.format(
+            bindings_codegen=', '.join(
+                'Binding<{var}, {value}'.format(
+                    var=self.codegen_(binding.var),
+                    value=self.codegen_(binding.value)
+                    ) for binding in bindings
+                ))
 
 def main():
     lines = sys.stdin.readlines()
