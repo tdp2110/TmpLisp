@@ -6,7 +6,7 @@ from lisp2cpp import *
 class TokenizerTest(unittest.TestCase):
     @staticmethod
     def tokenize(text):
-        return Tokenizer(text).tokens
+        return list(lisp_lexer.tokens(text))
     
     def test_1(self):
         var0 = 'var0'
@@ -15,27 +15,40 @@ class TokenizerTest(unittest.TestCase):
                                                var1=var1)
 
         tokens = self.tokenize(expr)
+
         self.assertEqual(
-            tokens,
-            [LPAREN, Ops.Mul, Var(var0), Var(var1), RPAREN, RPAREN])
+            [_.type for _ in tokens],
+            [TokenType.LParen, TokenType.Op, TokenType.Var, TokenType.Var,
+             TokenType.RParen, TokenType.RParen])
+
+        self.assertEqual(
+            [_.value for _ in tokens],
+            [LPAREN, '*', var0, var1, RPAREN, RPAREN])
 
     def test_2(self):
         expr = '( lambda (x) (+ x 1))'
         tokens = self.tokenize(expr)
-        x_var = Var('x')
-        self.assertEqual(
-            tokens,
-            [LPAREN, Keywords.Lambda, LPAREN, x_var, RPAREN,
-             LPAREN, Ops.Add, x_var, 1, RPAREN, RPAREN])
 
-    def test_comments_1(self):
+        self.assertEqual(
+            [_.type for _ in tokens],
+            [TokenType.LParen, TokenType.Keyword, TokenType.LParen,
+             TokenType.Var, TokenType.RParen, TokenType.LParen,
+             TokenType.Op, TokenType.Var, TokenType.Int, TokenType.RParen,
+             TokenType.RParen])
+        
+        self.assertEqual(
+            [_.value for _ in tokens],
+            [LPAREN, LAMBDA, LPAREN, 'x', RPAREN, LPAREN, '+',
+             'x', 1, RPAREN, RPAREN])
+        
+    def comments_1(self):
         expr = ')(x;y()'
         tokens = self.tokenize(expr)
         self.assertEqual(
             tokens,
             [RPAREN, LPAREN, Var('x')])
         
-    def test_comments_2(self):
+    def _comments_2(self):
         expr = ')(x;y()\n);omg'
         tokens = self.tokenize(expr)
         self.assertEqual(
@@ -45,38 +58,64 @@ class TokenizerTest(unittest.TestCase):
     def test_no_whitespace(self):
         expr = '(lambda(x)(+ x 1))'
         tokens = self.tokenize(expr)
-        x_var = Var('x')
+        
         self.assertEqual(
-            tokens,
-            [LPAREN, Keywords.Lambda, LPAREN, x_var, RPAREN,
-             LPAREN, Ops.Add, x_var, 1, RPAREN, RPAREN])
+            [_.type for _ in tokens],
+            [TokenType.LParen, TokenType.Keyword, TokenType.LParen,
+             TokenType.Var, TokenType.RParen, TokenType.LParen, TokenType.Op,
+             TokenType.Var, TokenType.Int, TokenType.RParen, TokenType.RParen])
 
+        self.assertEqual(
+            [_.value for _ in tokens],
+            [LPAREN, LAMBDA, LPAREN, 'x', RPAREN, LPAREN, '+', 'x', 1, RPAREN, RPAREN])
+            
     def test_emptylist_1(self):
         expr = '\'()'
+
+        tokens = self.tokenize(expr)
+
         self.assertEqual(
-            self.tokenize(expr),
-            [QUOTE_LPAREN, RPAREN])
+            [_.type for _ in tokens],
+            [TokenType.Quote, TokenType.LParen, TokenType.RParen])
+
+        self.assertEqual(
+            [_.value for _ in tokens],
+            [QUOTE, LPAREN, RPAREN])
         
     def test_emptylist_2(self):
         expr = '\'( )'
 
+        tokens = self.tokenize(expr)
+
         self.assertEqual(
-            self.tokenize(expr),
-            [QUOTE_LPAREN, RPAREN])
+            [_.type for _ in tokens],
+            [TokenType.Quote, TokenType.LParen, TokenType.RParen])
+
+        self.assertEqual(
+            [_.value for _ in tokens],
+            [QUOTE, LPAREN, RPAREN])
         
     def test_emptylist_3(self):
         varname = 'var'
         expr = '\'({})'.format(varname)
 
+        tokens = self.tokenize(expr)
+
         self.assertEqual(
-            self.tokenize(expr),
-            [QUOTE_LPAREN, Var(varname), RPAREN])
+            [_.type for _ in tokens],
+            [TokenType.Quote, TokenType.LParen, TokenType.Var, TokenType.RParen])
+
+        self.assertEqual(
+            [_.value for _ in tokens],
+            [QUOTE, LPAREN, varname, RPAREN])
 
     def test_booleans(self):
-        expr = '((#t)(#f)(42));asdfasdfasdf'
+        expr = '((#t)(#f)(42))'
+
+        tokens = self.tokenize(expr)
 
         self.assertEqual(
-            self.tokenize(expr),
+            [_.value for _ in tokens],
             [LPAREN, LPAREN, True, RPAREN, LPAREN, False,
              RPAREN, LPAREN, 42, RPAREN, RPAREN])
 
@@ -94,7 +133,7 @@ class ParserTest(unittest.TestCase):
         self.assertIsInstance(parse, SExp)
         self.assertEqual(parse.operator, Ops.Mul)
         self.assertEqual(parse.operands,
-                         [Var(varname), 1])
+                         [VarExp(varname), 1])
 
     def test_lambda(self):
         varname = 'x'
@@ -103,10 +142,10 @@ class ParserTest(unittest.TestCase):
         parse = self.parse(expr)
 
         expectedBody = SExp(operator=Ops.Add,
-                            operands=[Var(varname), 1])
+                            operands=[VarExp(varname), 1])
         
         self.assertIsInstance(parse, LambdaExp)
-        self.assertEqual(parse.arglist, [Var(varname)])
+        self.assertEqual(parse.arglist, [VarExp(varname)])
         self.assertEqual(parse.body, expectedBody)
 
 class Lisp2CppTest(unittest.TestCase):

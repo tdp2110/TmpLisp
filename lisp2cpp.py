@@ -6,16 +6,18 @@ from enum import Enum
 
 LPAREN = '('
 RPAREN = ')'
-QUOTE_LPAREN = '\'('
+QUOTE = '\''
 LAMBDA = 'lambda'
 SEMICOLON = ';'
+IF = 'if'
+LET = 'let'
+
 
 class Ops(Enum):
     Add = '+'
     Sub = '-'
     Mul = '*'
     Eq = '='
-    Neq = '!='
     Leq = '<='
     Or = 'or'
     And = 'and'
@@ -25,121 +27,140 @@ class Ops(Enum):
     Cdr = 'cdr'
     IsNull = 'null?'
 
+
 class Keywords(Enum):
     Lambda = LAMBDA
-    If = 'if'
-    Let = 'let'
-    
-class Var:
-    def __init__(self, val):
-        # match some regex
-        self.val = val
+    If = IF
+    Let = LET
 
-    def __eq__(self, other):
-        try:
-            return self.val == other.val
-        except AttributeError:
-            return self.val == other
 
+class Token(namedtuple('Token', ['type', 'value'])):
     def __str__(self):
-        return 'Var({})'.format(self.value)
+        return 'Token(type={}, value={})'.format(self.type, self.value)
+
+class Lexer:
+    '''
+    Taken from https://eli.thegreenplace.net/2013/06/25/regex-based-lexical-analysis-in-python-and-javascript/
+    '''
+    class Error(Exception):
+        pass
+
+    def __init__(self, rules):
+        regex_clauses = []
+        self.converters = {}
+        self.type_map = {}
+        for idx, (regex, type, converter) in enumerate(rules):
+            group_name = 'GROUP{}'.format(idx)
+            regex_clauses.append('(?P<{}>{})'.format(group_name, regex))
+            self.type_map[group_name] = type
+            self.converters[group_name] = converter
+
+        self.regex = re.compile('|'.join(regex_clauses))
+        self.skip_whitespace_regex = re.compile('\S')
+
+    def tokens(self, buf):
+        pos = 0
+        while True:
+            res = self.next_token(buf, pos)
+            if res is None:
+                break
+            token, pos = res
+
+            yield token
+
+    def next_token(self, buf, pos):
+        if pos >= len(buf):
+            return None
+
+        m = self.skip_whitespace_regex.search(buf, pos)
+
+        if m:
+            pos = m.start()
+        else:
+            return None
+
+        m = self.regex.match(buf, pos)
+
+        if m:
+            group_name = m.lastgroup
+            token_type = self.type_map[group_name]
+            converter = self.converters[group_name]
+
+            token = Token(token_type, converter(m.group(group_name)))
+            pos = m.end()
+            return token, pos
+
+        raise self.Error(pos)
+
+
+class TokenType:
+    class Quote: pass
+    class LParen: pass
+    class RParen: pass
+    class Int: pass
+    class Keyword: pass
+    class Op: pass
+    class Var: pass
+    class Bool: pass
+
+def convert_to_bool(elt):
+    if elt == '#t':
+        return True
+    if elt == '#f':
+        return False
+
+    raise ValueError
+    
+identity = lambda x: x
+
+lisp_rules = [
+    (IF, TokenType.Keyword, identity),
+    ('lambda', TokenType.Keyword, identity),
+    (LET, TokenType.Keyword, identity),
+    ('\'', TokenType.Quote, identity),
+    ('\+', TokenType.Op, identity),
+    ('\-', TokenType.Op, identity),
+    ('\*', TokenType.Op, identity),
+    ('=', TokenType.Op, identity),
+    ('<=', TokenType.Op, identity),
+    ('or', TokenType.Op, identity),
+    ('and', TokenType.Op, identity),
+    ('not', TokenType.Op, identity),
+    ('cons', TokenType.Op, identity),
+    ('car', TokenType.Op, identity),
+    ('cdr', TokenType.Op, identity),
+    ('null\?', TokenType.Op, identity),
+    ('\(', TokenType.LParen, identity),
+    ('\)', TokenType.RParen, identity),
+    ('[-+]?[0-9]+', TokenType.Int, int),
+    ('#t', TokenType.Bool, convert_to_bool),
+    ('#f', TokenType.Bool, convert_to_bool),
+    ('[a-zA-Z_0-9\!\-\?#]*', TokenType.Var, identity)
+]
+
+lisp_lexer = Lexer(lisp_rules)
 
 SExp = namedtuple('SExp', ['operator', 'operands'])
 LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
 IfExp = namedtuple('IfExp', ['cond', 'if_true', 'if_false'])
 Binding = namedtuple('Binding', ['var', 'value'])
 LetExp = namedtuple('LetExp', ['bindings', 'body'])
+VarExp = namedtuple('VarExp', ['name'])
 
-class Tokenizer:
-    class Error(Exception):
-        pass
-
-    @classmethod
-    def require(cls, cond, msg=None):
-        if not cond:
-            raise self.Error(msg)
-    
-    def __init__(self, text):
-        self.tokens = list(self.tokenize(text))
-
-    def top(self):
-        return self.tokens[0]
-
-    def pop(self):
-        self.tokens.pop(0)
-
-    def num_tokens(self):
-        return len(self.tokens)
-
-    @classmethod
-    def bool_reader(cls, elt):
-        if elt == '#t':
-            return True
-        if elt == '#f':
-            return False
-
-        raise ValueError
-    
-    @classmethod
-    def classify_item(cls, item):
-        if item == LPAREN or item == RPAREN:
-            return item
-
-        for converter in [Ops, Keywords, int, cls.bool_reader]:
-            try:
-                return converter(item)
-            except:
-                pass
-            
-        cls.require(re.match('^[a-zA-Z_]+[a-zA-Z_0-9\!\-\?#]*$', item),
-                     item)
-                     
-        return Var(item)
-        
-    @classmethod
-    def tokenize_chunk(cls, chunk):
-        m = re.match('^([\)\(]+)(.*)$', chunk)
-
-        if m:
-            leading_parens = m.groups()[0]
-            yield from leading_parens
-
-            rest = m.groups()[1]
-            if rest:
-                yield from cls.tokenize_chunk(rest)
-
-            return
-        
-        m = re.match('^\'\((.*)$', chunk)
-
-        if m:
-            yield QUOTE_LPAREN
-            group = m.groups()[0]
-            if group:
-                yield from cls.tokenize(group)
-
-            return
-
-        m = re.match('^([^\(\);]+)(.*)$', chunk)
-
-        if m:
-            yield cls.classify_item(m.groups()[0])
-            rest = m.groups()[1]
-            if rest:
-                yield from cls.tokenize_chunk(rest)
-
-            return
-
-        if chunk[0] == SEMICOLON:
-            return
-
-    @classmethod
-    def tokenize(cls, text):
-        for chunk in text.split():
-            yield from cls.tokenize_chunk(chunk)        
-
-            
 class Parser:
+    class Tokenizer:
+        def __init__(self, tokens):
+            self.tokens = list(tokens)
+
+        def top(self):
+            return self.tokens[0]
+
+        def pop(self):
+            self.tokens.pop(0)
+
+        def no_more_tokens(self):
+            return len(self.tokens) == 0
+    
     class Error(Exception):
         pass
 
@@ -147,33 +168,36 @@ class Parser:
     def require(cls, cond, msg=None):
         if not cond:
             raise cls.Error(msg)
-    
+
     @classmethod
     def parse(cls, text):
-        tokenizer = Tokenizer(text)
+        tokenizer = cls.Tokenizer(lisp_lexer.tokens(text))
         return cls(tokenizer).parse_exp()
 
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
 
     def pop_lparen_or_die(self):
-        self.require(self.tokenizer.top() == LPAREN)
+        self.require(self.tokenizer.top().type == TokenType.LParen)
         self.tokenizer.pop()
 
     def pop_rparen_or_die(self):
-        self.require(self.tokenizer.top() == RPAREN)
+        self.require(self.tokenizer.top().type == TokenType.RParen)
         self.tokenizer.pop()
-        
+
     def parse_item(self):
-        if self.tokenizer.top() == LPAREN:
+        if self.tokenizer.top().type == TokenType.LParen:
             self.tokenizer.pop()
-            if self.tokenizer.top() == Keywords.Lambda:
+            if self.tokenizer.top().type == TokenType.Keyword and \
+               self.tokenizer.top().value == LAMBDA:
                 self.tokenizer.pop()
                 res = self.parse_lambda()
-            elif self.tokenizer.top() == Keywords.If:
+            elif self.tokenizer.top().type == TokenType.Keyword and \
+                 self.tokenizer.top().value == IF:
                 self.tokenizer.pop()
                 res = self.parse_if()
-            elif self.tokenizer.top() == Keywords.Let:
+            elif self.tokenizer.top().type == TokenType.Keyword and \
+                 self.tokenizer.top().value == LET:
                 self.tokenizer.pop()
                 res = self.parse_let()
             else:
@@ -186,15 +210,15 @@ class Parser:
 
     def parse_exp(self):
         res = self.parse_item()
-        self.require(self.tokenizer.num_tokens() == 0)
+        self.require(self.tokenizer.no_more_tokens())
         return res
 
     def parse_let(self):
-        raise NotImplementedErro
-    
+        raise NotImplementedError
+
     def parse_if(self):
         cond = self.parse_item()
-        
+
         if_true = self.parse_item()
 
         if_false = self.parse_item()
@@ -202,52 +226,57 @@ class Parser:
         return IfExp(cond=cond,
                      if_true=if_true,
                      if_false=if_false)
-    
+
     def parse_lambda(self):
         def parse_arglist():
-            self.require(self.tokenizer.top() == LPAREN)
-            self.tokenizer.pop()
+            self.pop_lparen_or_die()
             res = []
-            while self.tokenizer.top() != RPAREN:
-                self.require(isinstance(self.tokenizer.top(),
-                                        Var))
-                res.append(self.tokenizer.top())
+            while self.tokenizer.top().type != TokenType.RParen:
+                top = self.tokenizer.top()
+                self.require(top.type == TokenType.Var, self.tokenizer.top())
+                res.append(VarExp(top.value))
                 self.tokenizer.pop()
             self.tokenizer.pop()
             return res
-                
+
         def parse_body():
             return self.parse_item()
-        
+
         return LambdaExp(
             arglist=parse_arglist(),
             body=parse_body())
-    
+
     def parse_atom(self):
         next_tok = self.tokenizer.top()
 
-        if isinstance(next_tok, (Var, int, bool, Ops)):
+        if next_tok.type in (TokenType.Int, TokenType.Bool):
             self.tokenizer.pop()
-            return next_tok
+            return next_tok.value
+        elif next_tok.type ==  TokenType.Op:
+            self.tokenizer.pop()
+            return Ops(next_tok.value)
+        elif next_tok.type == TokenType.Var:
+            self.tokenizer.pop()
+            return VarExp(name=next_tok.value)
 
         self.require(False, next_tok)
-        
+
     def parse_s_exp_body(self):
         operator = self.parse_item()
         operands = []
-        while self.tokenizer.top() != RPAREN:
+        while self.tokenizer.top().type != TokenType.RParen:
             operands.append(self.parse_item())
 
         return SExp(operator=operator,
                     operands=operands)
 
-    
+
 class Lisp2Cpp:
     class ConvertError(Exception):
         pass
-    
+
     include = 'include "tmp_lisp.hpp";\n\n'
-    
+
     def __init__(self, text):
         self.parse = Parser.parse(text)
         self.varmap = {}
@@ -263,9 +292,9 @@ class Lisp2Cpp:
             for exp in parse.arglist:
                 cls.compute_varmap(exp, varmap)
             cls.compute_varmap(parse.body, varmap)
-        if isinstance(parse, Var):
-            if parse.val not in varmap:
-                varmap[parse.val] = len(varmap)
+        if isinstance(parse, VarExp):
+            if parse.name not in varmap:
+                varmap[parse.name] = len(varmap)
 
     def codegen_varlist(self):
         res = ''
@@ -273,50 +302,52 @@ class Lisp2Cpp:
             res += 'using Var_{name} = Var<{ix}>;\n'.format(
                 name=name,
                 ix=ix
-                )
-        return res + '\n';
-                
+            )
+        return res + '\n'
+
     def codegen(self):
         return self.include + \
             self.codegen_varlist() + \
             self.codegen_(self.parse) + ';'
-                
+
     def codegen_(self, parse):
         if isinstance(parse, LambdaExp):
             return 'Lambda<{body_codegen}, EmptyEnv, {params_codegen}>'.format(
                 body_codegen=self.codegen_(parse.body),
                 params_codegen=','.join(self.codegen_(param)
                                         for param in parse.arglist)
-                )
+            )
         elif isinstance(parse, SExp):
             return 'SExp<{operator}, {operands_codegen}>'.format(
                 operator=self.codegen_(parse.operator),
                 operands_codegen=','.join(self.codegen_(operand)
                                           for operand in parse.operands)
-                )
+            )
         elif isinstance(parse, IfExp):
             return 'If<{cond}, {if_true}, {if_false}>'.format(
                 cond=self.codegen_(parse.cond),
                 if_true=self.codegen_(parse.if_true),
                 if_false=self.codegen_(parse.if_false)
-                )
+            )
         elif isinstance(parse, bool):
             return 'Bool<{}>'.format(str(parse).lower())
         elif isinstance(parse, int):
             return 'Int<{}>'.format(parse)
-        elif isinstance(parse, Var):
-            return 'Var<{}>'.format(self.varmap[parse.val])
+        elif isinstance(parse, VarExp):
+            return 'Var<{}>'.format(self.varmap[parse.name])
         elif isinstance(parse, Ops):
             return 'Op<OpCode::{}>'.format(parse.name)
         elif isinstance(parse, bool):
             return 'Bool<{}>'.format(parse)
         else:
-            raise self.ConvertError('don\'t know how to convert{} to CPP'.format(parse))
+            raise self.ConvertError(
+                'don\'t know how to convert{} to CPP'.format(parse))
 
 
 def main():
     lines = sys.stdin.readlines()
     print(Lisp2Cpp(''.join(lines)).codegen())
-    
+
+
 if __name__ == '__main__':
     main()
