@@ -1,3 +1,13 @@
+#  Restricted Scheme-like Language using Template Metaprogramming
+#
+#  Copyright Thomas D Peters 2018-present
+#
+#  Use, modification and distribution is subject to the
+#  Boost Software License, Version 1.0. (See accompanying
+#  file LICENSE or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+
 from collections import namedtuple
 import re
 import sys
