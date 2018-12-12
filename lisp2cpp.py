@@ -1,3 +1,4 @@
+
 #  Restricted Scheme-like Language using Template Metaprogramming
 #
 #  Copyright Thomas D Peters 2018-present
@@ -7,7 +8,7 @@
 #  file LICENSE or copy at
 #  http://www.boost.org/LICENSE_1_0.txt)
 
-
+import argparse
 from collections import namedtuple
 import re
 import sys
@@ -308,7 +309,7 @@ class Lisp2Cpp:
     class ConvertError(Exception):
         pass
 
-    include = 'include "tmp_lisp.hpp";\n\n'
+    include = '#include "tmp_lisp.hpp"\n\r\n\r'
 
     def __init__(self, text):
         self.parse = Parser.parse(text)
@@ -342,16 +343,20 @@ class Lisp2Cpp:
             )
         return res + '\n'
 
-    def codegen(self):
-        return self.include + \
-            self.codegen_varlist() + \
-            self.codegen_(self.parse) + ';'
+    def codegen(self, evaluate=False):
+        res = self.include + self.codegen_varlist()
+        res += 'using Result = Eval<{}, EmptyEnv>'.format(self.codegen_(self.parse)) + ';'
+
+        if evaluate:
+            res += '\n\rtypename Result::force_compiler_error eval;'
+
+        return res
 
     def codegen_(self, parse):
         if isinstance(parse, LambdaExp):
             return 'Lambda<{body_codegen}, EmptyEnv, {params_codegen}>'.format(
                 body_codegen=self.codegen_(parse.body),
-                params_codegen=', '.join(self.codegen_(param)
+                params_codegen=','.join(self.codegen_(param)
                                         for param in parse.arglist)
             )
         elif isinstance(parse, LetExp):
@@ -361,7 +366,7 @@ class Lisp2Cpp:
         elif isinstance(parse, SExp):
             return 'SExp<{operator}, {operands_codegen}>'.format(
                 operator=self.codegen_(parse.operator),
-                operands_codegen=', '.join(self.codegen_(operand)
+                operands_codegen=','.join(self.codegen_(operand)
                                           for operand in parse.operands)
             )
         elif isinstance(parse, IfExp):
@@ -386,17 +391,43 @@ class Lisp2Cpp:
         
     def env_codegen(self, bindings):
         return 'Env<{bindings_codegen}>'.format(
-            bindings_codegen=', '.join(
-                'Binding<{var}, {value}'.format(
+            bindings_codegen=','.join(
+                'Binding<{var}, {value}>'.format(
                     var=self.codegen_(binding.var),
                     value=self.codegen_(binding.value)
                     ) for binding in bindings
                 ))
 
-def main():
-    lines = sys.stdin.readlines()
-    print(Lisp2Cpp(''.join(lines)).codegen())
+def create_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input',
+                        '-i',
+                        help='pass lisp on the command line',
+                        type=str,
+                        default=None)
+    parser.add_argument('--file',
+                        '-f',
+                        help='read lisp from file',
+                        type=str,
+                        default=None)
+    parser.add_argument('--eval',
+                        '-e',
+                        help='evaluate the expression by asking for a non-existent member type alias',
+                        action='store_true')
+    return parser
+    
+def main(args):
+    lisp_str = ''
+    if args.input:
+        lisp_str = args.input
+    elif args.file:
+        with open(args.file, 'r') as f:
+            lisp_str = f.read()
 
+    if not lisp_str:
+        return
+            
+    print(Lisp2Cpp(lisp_str).codegen(evaluate=args.eval))
 
 if __name__ == '__main__':
-    main()
+    main(create_parser().parse_args())
