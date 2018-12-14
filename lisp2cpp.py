@@ -333,6 +333,8 @@ class Lisp2Cpp:
             for binding in parse.bindings:
                 if binding.var.name not in varmap:
                     varmap[binding.var.name] = len(varmap)
+                cls.compute_varmap(binding.value, varmap)
+            cls.compute_varmap(parse.body, varmap)
 
     def codegen_varlist(self):
         res = ''
