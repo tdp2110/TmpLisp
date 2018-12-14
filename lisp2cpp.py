@@ -21,7 +21,8 @@ QUOTE = '\''
 LAMBDA = 'lambda'
 SEMICOLON = ';'
 IF = 'if'
-LET = 'let'
+LET = 'letrec'
+LETREC = 'let'
 
 
 class Ops(Enum):
@@ -128,6 +129,7 @@ lisp_rules = [
     (IF, TokenType.Keyword, identity),
     ('lambda', TokenType.Keyword, identity),
     (LET, TokenType.Keyword, identity),
+    (LETREC, TokenType.Keyword, identity),
     ('\'', TokenType.Quote, identity),
     ('\+', TokenType.Op, identity),
     ('\-', TokenType.Op, identity),
