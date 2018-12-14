@@ -339,8 +339,8 @@ class Lisp2Cpp:
     def codegen_varlist(self):
         res = ''
         for name, ix in self.varmap.items():
-            res += 'using Var_{name} = Var<{ix}>;\n'.format(
-                name=name,
+            res += 'using {name_alias} = Var<{ix}>;\n'.format(
+                name_alias=self.codegen_var(name),
                 ix=ix
             )
         return res + '\n'
@@ -382,7 +382,7 @@ class Lisp2Cpp:
         elif isinstance(parse, int):
             return 'Int<{}>'.format(parse)
         elif isinstance(parse, VarExp):
-            return 'Var<{}>'.format(self.varmap[parse.name])
+            return self.codegen_var(parse.name)
         elif isinstance(parse, Ops):
             return 'Op<OpCode::{}>'.format(parse.name)
         elif isinstance(parse, bool):
@@ -390,6 +390,13 @@ class Lisp2Cpp:
         else:
             raise self.ConvertError(
                 'don\'t know how to convert{} to CPP'.format(parse))
+
+    @staticmethod
+    def name_to_cpp(lisp_var_name):
+        return re.sub('[^0-9a-zA-Z_]+', '_', lisp_var_name)
+        
+    def codegen_var(self, name):
+        return 'Var_{}'.format(self.name_to_cpp(name))
         
     def env_codegen(self, bindings):
         return 'Env<{bindings_codegen}>'.format(
