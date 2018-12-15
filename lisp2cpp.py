@@ -10,9 +10,10 @@
 
 import argparse
 from collections import namedtuple
-import re
-import sys
 from enum import Enum
+import os
+import sys
+import re
 
 
 LPAREN = '('
@@ -198,6 +199,12 @@ class Parser:
         self.require(self.tokenizer.top().type == TokenType.RParen)
         self.tokenizer.pop()
 
+    @staticmethod
+    def is_let(token):
+        # I'm not handling all the different let, let*, letrecs properly
+        # I think what I have is closes to letrec
+        return token in (LET, LETREC)
+        
     def parse_item(self):
         if self.tokenizer.top().type == TokenType.LParen:
             self.tokenizer.pop()
@@ -210,7 +217,7 @@ class Parser:
                 self.tokenizer.pop()
                 res = self.parse_if()
             elif self.tokenizer.top().type == TokenType.Keyword and \
-                 self.tokenizer.top().value == LET:
+                 self.is_let(self.tokenizer.top().value):
                 self.tokenizer.pop()
                 res = self.parse_let()
             else:
@@ -311,7 +318,9 @@ class Lisp2Cpp:
     class ConvertError(Exception):
         pass
 
-    include = '#include "tmp_lisp.hpp"\n\r\n\r'
+    header_name = 'tmp_lisp.hpp'
+    
+    include = '#include "{}"\n\r\n\r'.format(header_name)
 
     def __init__(self, text):
         self.parse = Parser.parse(text)
@@ -347,8 +356,23 @@ class Lisp2Cpp:
             )
         return res + '\n'
 
-    def codegen(self, evaluate=False):
-        res = self.include + self.codegen_varlist()
+    @classmethod
+    def paste_header(cls):
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(dir_path, cls.header_name), 'r') as f:
+            res = '/******************* BEGIN TMP_LISP *************/' + \
+                f.read() +  \
+                '\n\r/********************** END TMP_LISP ***************/' + \
+                '\n\r\n\r'
+            res = res.replace('#pragma once', '')
+            return res
+    
+    def codegen(self, evaluate=False, include_header=False):
+        if include_header:
+            res = self.paste_header()
+        else:
+            res = self.include
+        res += self.codegen_varlist()
         res += 'using Result = Eval<{}, EmptyEnv>'.format(self.codegen_(self.parse)) + ';'
 
         if evaluate:
@@ -425,6 +449,9 @@ def create_parser():
                         '-e',
                         help='evaluate the expression by asking for a non-existent member type alias',
                         action='store_true')
+    parser.add_argument('--include-header',
+                        help='instead of having and include line, paste the entire header include',
+                        action='store_true')
     return parser
     
 def main(args):
@@ -438,7 +465,8 @@ def main(args):
     if not lisp_str:
         return
             
-    print(Lisp2Cpp(lisp_str).codegen(evaluate=args.eval))
+    print(Lisp2Cpp(lisp_str).codegen(evaluate=args.eval,
+                                     include_header=args.include_header))
 
 if __name__ == '__main__':
     main(create_parser().parse_args())

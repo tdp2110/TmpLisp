@@ -1,3 +1,5 @@
+from subprocess import Popen, PIPE
+from tempfile import TemporaryDirectory
 import unittest
 
 from lisp2cpp import *
@@ -149,9 +151,40 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(parse.body, expectedBody)
 
 class Lisp2CppTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.temp_dir = TemporaryDirectory()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp_dir.cleanup()
+    
     @staticmethod
     def codegen(text):
         return Lisp2Cpp(text).codegen()
+
+    @property
+    def compiler_outfile(self):
+        return os.path.join(self.temp_dir.name, 'a.out')
+    
+    def check_cppeval(self, lisp_code, expected_result):
+        cpp_code = '#include <type_traits>\n\r\n\r'
+        cpp_code += Lisp2Cpp(lisp_code).codegen(evaluate=False,
+                                               include_header=True)
+        cpp_code += '\n\r\n\r'
+        cpp_code += 'static_assert(std::is_same<Result, {}>::value);'.format(expected_result)
+
+        self.check_compiles(cpp_code)
+    
+    def check_compiles(self, code):
+        codegen_process = Popen(['echo', code], stdout=PIPE)
+        compile_process = Popen(['c++', '-xc++', '-std=c++1z', '-', '-c', '-o', self.compiler_outfile],
+                                stdin=codegen_process.stdout,
+                                stdout=PIPE)
+        codegen_process.stdout.close()
+        out, err = compile_process.communicate()
+
+        self.assertEqual(compile_process.returncode, 0, (out, err))
     
     def test_varmap_1(self):
         exp = '(lambda (x y) (+ x y z))'
@@ -159,30 +192,54 @@ class Lisp2CppTest(unittest.TestCase):
 
         self.assertEqual(set(lisp2cpp.varmap), {'x', 'y', 'z'})
 
+    def test_compile_subprocess(self):
+        self.check_compiles('int main(){}')
+
+        with self.assertRaises(AssertionError):
+            self.check_compiles('int main(){')
+    
     def test_codegen_1(self):
-        exp = '(lambda (x y) (+ x 1 y))'
-
-        self.codegen(exp)
-
+        self.check_cppeval('(+ 2 3)', 'Int<5>')
+            
     def test_codegen_2(self):
-        exp = '(or #t #f #t)'
+        exp = '((lambda (x y) (+ x 1 y)) 2 3)'
 
-        assert False, self.codegen(exp)
+        self.check_cppeval(exp, 'Int<6>')
 
     def test_codegen_3(self):
+        exp = '(or #t #f #t)'
+
+        self.check_cppeval(exp, 'True')
+        
+    def test_codegen_4(self):
         exp = '(if #t 1 3)'
 
-        assert False, self.codegen(exp)
+        self.check_cppeval(exp, 'Int<1>')
+        
+    def test_codegen_5(self):
+        list_exp = '(cons 0 (cons 1 (cons 2 3)))'
+        exp = '(car (cdr (cdr {})))'.format(list_exp)
 
-    def test_codegen_4(self):
-        exp = '(cons 0 (cons 1 (cons 2 3)))'
-
-        assert False, self.codegen(exp)
-
+        self.check_cppeval(exp, 'Int<2>')
+        
     def test_let(self):
         exp = '(let ((x 1)(y 2)) (+ x y))'
 
-        assert False, self.codegen(exp)
+        self.check_cppeval(exp, 'Int<3>')
+
+    def test_factorial(self):
+        exp = '''(letrec ((fact (lambda (n)
+                              (if (= 0 n)
+                                  1
+                                  (* n (fact (- n 1)))))))
+                   (fact 10))'''
+
+        def fact(n):
+            if n == 0:
+                return 1
+            return n * fact(n - 1)
+        
+        self.check_cppeval(exp, 'Int<{}>'.format(fact(10)))
         
 if __name__ == '__main__':
     unittest.main()
