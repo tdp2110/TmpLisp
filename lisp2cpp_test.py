@@ -228,18 +228,19 @@ class Lisp2CppTest(unittest.TestCase):
         self.check_cppeval(exp, 'Int<3>')
 
     def test_factorial(self):
-        exp = '''(letrec ((fact (lambda (n)
-                              (if (= 0 n)
-                                  1
-                                  (* n (fact (- n 1)))))))
-                   (fact 10))'''
-
         def fact(n):
             if n == 0:
                 return 1
             return n * fact(n - 1)
-        
-        self.check_cppeval(exp, 'Int<{}>'.format(fact(10)))
+
+        for integer in [0, 1, 10]:
+            exp = '''(letrec ((fact (lambda (n)
+                                  (if (= 0 n)
+                                      1
+                                      (* n (fact (- n 1)))))))
+                       (fact {}))'''.format(integer)
+
+            self.check_cppeval(exp, 'Int<{}>'.format(fact(integer)))
         
 if __name__ == '__main__':
     unittest.main()

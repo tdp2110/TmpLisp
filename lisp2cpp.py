@@ -369,7 +369,7 @@ class Lisp2Cpp:
                 f.read() +  \
                 '\n\r/********************** END TMP_LISP ***************/' + \
                 '\n\r\n\r'
-            res = res.replace('#pragma once', '')
+            res = res.replace('#pragma once', '') # such a hack ...
             return res
     
     def codegen(self, evaluate=False, include_header=False):

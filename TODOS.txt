@@ -1,3 +1,4 @@
 * handle comments
-* end-to-end tests
 * strings
+* handle the different types of let
+* mutable state ... oh dear
