@@ -208,16 +208,21 @@ class Parser:
     def parse_item(self):
         if self.tokenizer.top().type == TokenType.LParen:
             self.tokenizer.pop()
-            if self.tokenizer.top().type == TokenType.Keyword and \
-               self.tokenizer.top().value == LAMBDA:
+
+            top_token = self.tokenizer.top()
+            top_token_type = top_token.type
+            top_token_value = top_token.value
+            
+            if top_token_type == TokenType.Keyword and \
+               top_token_value == LAMBDA:
                 self.tokenizer.pop()
                 res = self.parse_lambda()
-            elif self.tokenizer.top().type == TokenType.Keyword and \
-                 self.tokenizer.top().value == IF:
+            elif top_token_type == TokenType.Keyword and \
+                 top_token_value == IF:
                 self.tokenizer.pop()
                 res = self.parse_if()
-            elif self.tokenizer.top().type == TokenType.Keyword and \
-                 self.is_let(self.tokenizer.top().value):
+            elif top_token_type == TokenType.Keyword and \
+                 self.is_let(top_token_value):
                 self.tokenizer.pop()
                 res = self.parse_let()
             else:
