@@ -241,6 +241,24 @@ class Lisp2CppTest(unittest.TestCase):
                        (fact {}))'''.format(integer)
 
             self.check_cppeval(exp, 'Int<{}>'.format(fact(integer)))
+
+    def test_mapcar(self):
+        def mapcar_exp(func_exp, list_exp):
+            return '''(letrec ((mapcar (lambda (func list)
+                                       (if (null? list)
+                                           '()
+                                           (cons (func (car list)) (mapcar func (cdr list)))   
+                                        ))))
+                        (mapcar {func_exp} {list_exp}))'''.format(func_exp=func_exp,
+                                                                  list_exp=list_exp)
+
+        list_exp = '\'(1 2 3)'
+        double_fun = '(lambda (arg) (* arg 2))'
+
+        self.check_cppeval(
+            mapcar_exp(func_exp=double_fun,
+                       list_exp=list_exp),
+            'Cons<Int<2>, Cons<Int<4>, Cons<Int<6>, EmptyList>>>')
         
 if __name__ == '__main__':
     unittest.main()

@@ -12,7 +12,6 @@ import argparse
 from collections import namedtuple
 from enum import Enum
 import os
-import sys
 import re
 
 
@@ -128,7 +127,7 @@ identity = lambda x: x
 
 lisp_rules = [
     (IF, TokenType.Keyword, identity),
-    ('lambda', TokenType.Keyword, identity),
+    (LAMBDA, TokenType.Keyword, identity),
     (LET, TokenType.Keyword, identity),
     (LETREC, TokenType.Keyword, identity),
     ('\'', TokenType.Quote, identity),
@@ -160,6 +159,7 @@ IfExp = namedtuple('IfExp', ['cond', 'if_true', 'if_false'])
 Binding = namedtuple('Binding', ['var', 'value'])
 LetExp = namedtuple('LetExp', ['bindings', 'body'])
 VarExp = namedtuple('VarExp', ['name'])
+ListExp = namedtuple('ListExp', ['values'])
 
 class Parser:
     class Tokenizer:
@@ -306,9 +306,23 @@ class Parser:
         elif next_tok.type == TokenType.Var:
             self.tokenizer.pop()
             return VarExp(name=next_tok.value)
+        elif next_tok.type == TokenType.Quote:
+            self.tokenizer.pop()
+            return self.parse_quoted_list()
 
         self.require(False, next_tok)
 
+    def parse_quoted_list(self):
+        self.pop_lparen_or_die()
+        values = []
+        while self.tokenizer.top().type != TokenType.RParen:
+            item = self.parse_atom()
+            if isinstance(item, VarExp):
+                raise self.Error('don\'t know how to handle strings yet')
+            values.append(item)
+        self.pop_rparen_or_die()
+        return ListExp(values=values)
+        
     def parse_s_exp_body(self):
         operator = self.parse_item()
         operands = []
@@ -418,14 +432,22 @@ class Lisp2Cpp:
             return 'Op<OpCode::{}>'.format(parse.name)
         elif isinstance(parse, bool):
             return 'Bool<{}>'.format(parse)
+        elif isinstance(parse, ListExp):
+            return self.codegen_list(parse.values)
         else:
             raise self.ConvertError(
-                'don\'t know how to convert{} to CPP'.format(parse))
+                'don\'t know how to convert {} to CPP'.format(parse))
 
     @staticmethod
     def name_to_cpp(lisp_var_name):
         return re.sub('[^0-9a-zA-Z_]+', '_', lisp_var_name)
-        
+
+    def codegen_list(self, list_values):
+        if not list_values:
+            return 'EmptyList'
+        return 'Cons<{}, {}>'.format(self.codegen_(list_values[0]),
+                                     self.codegen_list(list_values[1:]))
+    
     def codegen_var(self, name):
         return 'Var_{}'.format(self.name_to_cpp(name))
         
