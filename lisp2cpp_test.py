@@ -9,6 +9,14 @@ class TokenizerTest(unittest.TestCase):
     @staticmethod
     def tokenize(text):
         return list(lisp_lexer.tokens(text))
+
+    @staticmethod
+    def token_types(tokens):
+        return [_.type for _ in tokens]
+
+    @staticmethod
+    def token_values(tokens):
+        return [_.value for _ in tokens]
     
     def test_1(self):
         var0 = 'var0'
@@ -19,12 +27,12 @@ class TokenizerTest(unittest.TestCase):
         tokens = self.tokenize(expr)
 
         self.assertEqual(
-            [_.type for _ in tokens],
+            self.token_types(tokens),
             [TokenType.LParen, TokenType.Op, TokenType.Var, TokenType.Var,
              TokenType.RParen, TokenType.RParen])
 
         self.assertEqual(
-            [_.value for _ in tokens],
+            self.token_values(tokens),
             [LPAREN, '*', var0, var1, RPAREN, RPAREN])
 
     def test_2(self):
@@ -32,43 +40,43 @@ class TokenizerTest(unittest.TestCase):
         tokens = self.tokenize(expr)
 
         self.assertEqual(
-            [_.type for _ in tokens],
+            self.token_types(tokens),
             [TokenType.LParen, TokenType.Keyword, TokenType.LParen,
              TokenType.Var, TokenType.RParen, TokenType.LParen,
              TokenType.Op, TokenType.Var, TokenType.Int, TokenType.RParen,
              TokenType.RParen])
         
         self.assertEqual(
-            [_.value for _ in tokens],
+            self.token_values(tokens),
             [LPAREN, LAMBDA, LPAREN, 'x', RPAREN, LPAREN, '+',
              'x', 1, RPAREN, RPAREN])
         
-    def comments_1(self):
-        expr = ')(x;y()'
+    def test_comments_1(self):
+        expr = ')(x;y()\n'
         tokens = self.tokenize(expr)
         self.assertEqual(
-            tokens,
-            [RPAREN, LPAREN, Var('x')])
+            self.token_types(tokens),
+            [TokenType.RParen, TokenType.LParen, TokenType.Var])
         
-    def _comments_2(self):
-        expr = ')(x;y()\n);omg'
+    def test_comments_2(self):
+        expr = ')(x;y()\n  );omg'
         tokens = self.tokenize(expr)
         self.assertEqual(
-            tokens,
-            [RPAREN, LPAREN, Var('x'), RPAREN])
+            self.token_types(tokens),
+            [TokenType.RParen, TokenType.LParen, TokenType.Var, TokenType.RParen])
         
     def test_no_whitespace(self):
         expr = '(lambda(x)(+ x 1))'
         tokens = self.tokenize(expr)
         
         self.assertEqual(
-            [_.type for _ in tokens],
+            self.token_types(tokens),
             [TokenType.LParen, TokenType.Keyword, TokenType.LParen,
              TokenType.Var, TokenType.RParen, TokenType.LParen, TokenType.Op,
              TokenType.Var, TokenType.Int, TokenType.RParen, TokenType.RParen])
 
         self.assertEqual(
-            [_.value for _ in tokens],
+            self.token_values(tokens),
             [LPAREN, LAMBDA, LPAREN, 'x', RPAREN, LPAREN, '+', 'x', 1, RPAREN, RPAREN])
             
     def test_emptylist_1(self):
@@ -77,11 +85,11 @@ class TokenizerTest(unittest.TestCase):
         tokens = self.tokenize(expr)
 
         self.assertEqual(
-            [_.type for _ in tokens],
+            self.token_types(tokens),
             [TokenType.Quote, TokenType.LParen, TokenType.RParen])
 
         self.assertEqual(
-            [_.value for _ in tokens],
+            self.token_values(tokens),
             [QUOTE, LPAREN, RPAREN])
         
     def test_emptylist_2(self):
@@ -90,11 +98,11 @@ class TokenizerTest(unittest.TestCase):
         tokens = self.tokenize(expr)
 
         self.assertEqual(
-            [_.type for _ in tokens],
+            self.token_types(tokens),
             [TokenType.Quote, TokenType.LParen, TokenType.RParen])
 
         self.assertEqual(
-            [_.value for _ in tokens],
+            self.token_values(tokens),
             [QUOTE, LPAREN, RPAREN])
         
     def test_emptylist_3(self):
@@ -104,11 +112,11 @@ class TokenizerTest(unittest.TestCase):
         tokens = self.tokenize(expr)
 
         self.assertEqual(
-            [_.type for _ in tokens],
+            self.token_types(tokens),
             [TokenType.Quote, TokenType.LParen, TokenType.Var, TokenType.RParen])
 
         self.assertEqual(
-            [_.value for _ in tokens],
+            self.token_values(tokens),
             [QUOTE, LPAREN, varname, RPAREN])
 
     def test_booleans(self):
@@ -117,7 +125,7 @@ class TokenizerTest(unittest.TestCase):
         tokens = self.tokenize(expr)
 
         self.assertEqual(
-            [_.value for _ in tokens],
+            self.token_values(tokens),
             [LPAREN, LPAREN, True, RPAREN, LPAREN, False,
              RPAREN, LPAREN, 42, RPAREN, RPAREN])
 

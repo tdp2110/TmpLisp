@@ -57,18 +57,21 @@ class Lexer:
     class Error(Exception):
         pass
 
-    def __init__(self, rules):
+    def __init__(self, rules, comment_regex=None):
         regex_clauses = []
         self.converters = {}
         self.type_map = {}
-        for idx, (regex, type, converter) in enumerate(rules):
+        for idx, (regex, token_type, converter) in enumerate(rules):
             group_name = 'GROUP{}'.format(idx)
             regex_clauses.append('(?P<{}>{})'.format(group_name, regex))
-            self.type_map[group_name] = type
+            self.type_map[group_name] = token_type
             self.converters[group_name] = converter
 
         self.regex = re.compile('|'.join(regex_clauses))
-        self.skip_whitespace_regex = re.compile('\S')
+
+        self.skip_whitespace_regex = re.compile(r'\S')
+        if comment_regex is not None:
+            self.comment_regex = re.compile(comment_regex)
 
     def tokens(self, buf):
         pos = 0
@@ -85,14 +88,29 @@ class Lexer:
             return None
 
         m = self.skip_whitespace_regex.search(buf, pos)
-
+        
         if m:
             pos = m.start()
         else:
             return None
 
-        m = self.regex.match(buf, pos)
+        if self.comment_regex is not None:
+            m = self.comment_regex.match(buf, pos)
+            if m:
+                pos = m.end()
 
+        m = self.skip_whitespace_regex.search(buf, pos)
+        
+        if m:
+            pos = m.start()
+        else:
+            return None
+        
+        if pos >= len(buf):
+            return None
+                
+        m = self.regex.match(buf, pos)
+        
         if m:
             group_name = m.lastgroup
             token_type = self.type_map[group_name]
@@ -102,7 +120,7 @@ class Lexer:
             pos = m.end()
             return token, pos
 
-        raise self.Error(pos)
+        raise self.Error((pos, buf[pos:]))
 
 
 class TokenType:
@@ -130,28 +148,28 @@ lisp_rules = [
     (LAMBDA, TokenType.Keyword, identity),
     (LET, TokenType.Keyword, identity),
     (LETREC, TokenType.Keyword, identity),
-    ('\'', TokenType.Quote, identity),
-    ('\+', TokenType.Op, identity),
-    ('\-', TokenType.Op, identity),
-    ('\*', TokenType.Op, identity),
-    ('=', TokenType.Op, identity),
-    ('<=', TokenType.Op, identity),
-    ('or', TokenType.Op, identity),
-    ('and', TokenType.Op, identity),
-    ('not', TokenType.Op, identity),
-    ('cons', TokenType.Op, identity),
-    ('car', TokenType.Op, identity),
-    ('cdr', TokenType.Op, identity),
-    ('null\?', TokenType.Op, identity),
-    ('\(', TokenType.LParen, identity),
-    ('\)', TokenType.RParen, identity),
-    ('[-+]?[0-9]+', TokenType.Int, int),
-    ('#t', TokenType.Bool, convert_to_bool),
-    ('#f', TokenType.Bool, convert_to_bool),
-    ('[a-zA-Z_0-9\!\-\?#]*', TokenType.Var, identity)
+    (r'\'', TokenType.Quote, identity),
+    (r'\+', TokenType.Op, identity),
+    (r'\-', TokenType.Op, identity),
+    (r'\*', TokenType.Op, identity),
+    (r'=', TokenType.Op, identity),
+    (r'<=', TokenType.Op, identity),
+    (r'or', TokenType.Op, identity),
+    (r'and', TokenType.Op, identity),
+    (r'not', TokenType.Op, identity),
+    (r'cons', TokenType.Op, identity),
+    (r'car', TokenType.Op, identity),
+    (r'cdr', TokenType.Op, identity),
+    (r'null\?', TokenType.Op, identity),
+    (r'\(', TokenType.LParen, identity),
+    (r'\)', TokenType.RParen, identity),
+    (r'[-+]?[0-9]+', TokenType.Int, int),
+    (r'#t', TokenType.Bool, convert_to_bool),
+    (r'#f', TokenType.Bool, convert_to_bool),
+    (r'[a-zA-Z_0-9\!\-\?#]+', TokenType.Var, identity)
 ]
 
-lisp_lexer = Lexer(lisp_rules)
+lisp_lexer = Lexer(lisp_rules, comment_regex=';[^\n\r]*(?:$|\n|\r)')
 
 SExp = namedtuple('SExp', ['operator', 'operands'])
 LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
