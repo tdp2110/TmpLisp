@@ -218,6 +218,10 @@ class Parser:
         self.require(self.tokenizer.no_more_tokens())
         return res
 
+    def var_exp(self, value):
+        self.require(self.integer_regex.match(value) is None)
+        return VarExp(value)
+    
     def parse_let(self):
         def parse_bindings():
             res = []
@@ -225,7 +229,7 @@ class Parser:
                 self.tokenizer.pop()
                 top = self.tokenizer.top()
                 self.require(top.type == TokenType.Identifier, top)
-                var = VarExp(top.value)
+                var = self.var_exp(top.value)
                 self.tokenizer.pop()
                 top = self.tokenizer.top()
                 value = self.parse_item()
@@ -280,6 +284,8 @@ class Parser:
             return self.parse_identifier()
         elif next_tok.type == TokenType.Quote:
             self.tokenizer.pop()
+            self.require(self.tokenizer.top().type == TokenType.LParen,
+                         'only know how to parse quoted lists right now')
             return self.parse_quoted_list()
 
         self.require(False, next_tok)
