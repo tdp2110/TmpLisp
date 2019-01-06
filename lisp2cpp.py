@@ -20,13 +20,14 @@ QUOTE = '\''
 LAMBDA = 'lambda'
 SEMICOLON = ';'
 IF = 'if'
-LET = 'letrec'
-LETREC = 'let'
+LETREC = 'letrec'
+LET = 'let'
 
 
 class Token(namedtuple('Token', ['type', 'value'])):
     def __str__(self):
         return 'Token(type={}, value={})'.format(self.type, self.value)
+
 
 class Lexer:
     '''
@@ -65,14 +66,14 @@ class Lexer:
             return None
 
         m = self.skip_whitespace_regex.search(buf, pos)
-        
+
         if m:
             pos = m.start()
         else:
             return None
 
         m = self.regex.match(buf, pos)
-        
+
         if m:
             group_name = m.lastgroup
             token_type = self.type_map[group_name]
@@ -82,12 +83,23 @@ class Lexer:
 
         raise self.Error((pos, buf[pos:]))
 
+
 class TokenType:
-    class Quote: pass
-    class LParen: pass
-    class RParen: pass
-    class Comment: pass
-    class Identifier: pass
+    class Quote:
+        pass
+
+    class LParen:
+        pass
+
+    class RParen:
+        pass
+
+    class Comment:
+        pass
+
+    class Identifier:
+        pass
+
 
 lisp_rules = [
     (r'\'', TokenType.Quote),
@@ -108,6 +120,7 @@ VarExp = namedtuple('VarExp', ['name'])
 ListExp = namedtuple('ListExp', ['values'])
 OpExp = namedtuple('OpExp', ['value'])
 
+
 class Parser:
     class Tokenizer:
         def __init__(self, tokens):
@@ -121,7 +134,7 @@ class Parser:
 
         def no_more_tokens(self):
             return len(self.tokens) == 0
-    
+
     class Error(Exception):
         pass
 
@@ -136,8 +149,8 @@ class Parser:
            'cons': 'Cons',
            'car': 'Car',
            'cdr': 'Cdr',
-           'null?': 'IsNull'}    
-        
+           'null?': 'IsNull'}
+
     @classmethod
     def require(cls, cond, msg=None):
         if not cond:
@@ -165,14 +178,14 @@ class Parser:
         # I'm not handling all the different let, let*, letrecs properly
         # I think what I have is closes to letrec
         return token in (LET, LETREC)
-        
+
     def parse_item(self):
         while self.tokenizer.top() == TokenType.Comment:
             self.tokenizer.pop()
 
         top_token = self.tokenizer.top()
         top_token_type = top_token.type
-            
+
         if top_token_type == TokenType.LParen:
             self.tokenizer.pop()
             res = self.parse_s_exp()
@@ -199,7 +212,7 @@ class Parser:
             return int(identifier)
         else:
             return VarExp(identifier)
-        
+
     def parse_exp(self):
         res = self.parse_item()
         self.require(self.tokenizer.no_more_tokens())
@@ -219,14 +232,14 @@ class Parser:
                 self.pop_rparen_or_die()
                 res.append(Binding(var=var, value=value))
             return res
-        
+
         def parse_body():
             return self.parse_item()
-        
+
         self.pop_lparen_or_die()
         bindings = parse_bindings()
         self.pop_rparen_or_die()
-        
+
         body = parse_body()
 
         return LetExp(bindings=bindings, body=body)
@@ -263,7 +276,7 @@ class Parser:
 
     def parse_atom(self):
         next_tok = self.tokenizer.top()
-        if next_tok.type ==  TokenType.Identifier:
+        if next_tok.type == TokenType.Identifier:
             return self.parse_identifier()
         elif next_tok.type == TokenType.Quote:
             self.tokenizer.pop()
@@ -281,7 +294,7 @@ class Parser:
             values.append(item)
         self.pop_rparen_or_die()
         return ListExp(values=values)
-        
+
     def parse_s_exp(self):
         tok = self.tokenizer.top()
         if tok.type == TokenType.Identifier:
@@ -295,7 +308,7 @@ class Parser:
             elif self.is_let(identifier):
                 self.tokenizer.pop()
                 return self.parse_let()
-            
+
         operator = self.parse_item()
         operands = []
         while self.tokenizer.top().type != TokenType.RParen:
@@ -310,7 +323,7 @@ class Lisp2Cpp:
         pass
 
     header_name = 'tmp_lisp.hpp'
-    
+
     include = '#include "{}"\n\r\n\r'.format(header_name)
 
     def __init__(self, text):
@@ -355,16 +368,17 @@ class Lisp2Cpp:
                 f.read() +  \
                 '\n\r/********************** END TMP_LISP ***************/' + \
                 '\n\r\n\r'
-            res = res.replace('#pragma once', '') # such a hack ...
+            res = res.replace('#pragma once', '')  # such a hack ...
             return res
-    
+
     def codegen(self, evaluate=False, include_header=False):
         if include_header:
             res = self.paste_header()
         else:
             res = self.include
         res += self.codegen_varlist()
-        res += 'using Result = Eval<{}, EmptyEnv>'.format(self.codegen_(self.parse)) + ';'
+        res += 'using Result = Eval<{}, EmptyEnv>'.format(
+            self.codegen_(self.parse)) + ';'
 
         if evaluate:
             res += '\n\rtypename Result::force_compiler_error eval;'
@@ -419,18 +433,19 @@ class Lisp2Cpp:
             return 'EmptyList'
         return 'Cons<{}, {}>'.format(self.codegen_(list_values[0]),
                                      self.codegen_list(list_values[1:]))
-    
+
     def codegen_var(self, name):
         return 'Var_{}'.format(self.name_to_cpp(name))
-        
+
     def env_codegen(self, bindings):
         return 'Env<{bindings_codegen}>'.format(
             bindings_codegen=','.join(
                 'Binding<{var}, {value}>'.format(
                     var=self.codegen_(binding.var),
                     value=self.codegen_(binding.value)
-                    ) for binding in bindings
-                ))
+                ) for binding in bindings
+            ))
+
 
 def create_parser():
     parser = argparse.ArgumentParser()
@@ -452,7 +467,8 @@ def create_parser():
                         help='instead of having and include line, paste the entire header include',
                         action='store_true')
     return parser
-    
+
+
 def main(args):
     lisp_str = ''
     if args.input:
@@ -463,9 +479,10 @@ def main(args):
 
     if not lisp_str:
         return
-            
+
     print(Lisp2Cpp(lisp_str).codegen(evaluate=args.eval,
                                      include_header=args.include_header))
+
 
 if __name__ == '__main__':
     main(create_parser().parse_args())
