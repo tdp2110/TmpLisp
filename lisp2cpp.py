@@ -10,7 +10,6 @@
 
 import argparse
 from collections import namedtuple
-from enum import Enum
 import os
 import re
 
@@ -23,27 +22,6 @@ SEMICOLON = ';'
 IF = 'if'
 LET = 'letrec'
 LETREC = 'let'
-
-
-class Ops(Enum):
-    Add = '+'
-    Sub = '-'
-    Mul = '*'
-    Eq = '='
-    Leq = '<='
-    Or = 'or'
-    And = 'and'
-    Not = 'not'
-    Cons = 'cons'
-    Car = 'car'
-    Cdr = 'cdr'
-    IsNull = 'null?'
-
-
-class Keywords(Enum):
-    Lambda = LAMBDA
-    If = IF
-    Let = LET
 
 
 class Token(namedtuple('Token', ['type', 'value'])):
@@ -61,11 +39,10 @@ class Lexer:
         regex_clauses = []
         self.converters = {}
         self.type_map = {}
-        for idx, (regex, token_type, converter) in enumerate(rules):
+        for idx, (regex, token_type) in enumerate(rules):
             group_name = 'GROUP{}'.format(idx)
             regex_clauses.append('(?P<{}>{})'.format(group_name, regex))
             self.type_map[group_name] = token_type
-            self.converters[group_name] = converter
 
         self.regex = re.compile('|'.join(regex_clauses))
 
@@ -94,82 +71,33 @@ class Lexer:
         else:
             return None
 
-        if self.comment_regex is not None:
-            m = self.comment_regex.match(buf, pos)
-            if m:
-                pos = m.end()
-
-        m = self.skip_whitespace_regex.search(buf, pos)
-        
-        if m:
-            pos = m.start()
-        else:
-            return None
-        
-        if pos >= len(buf):
-            return None
-                
         m = self.regex.match(buf, pos)
         
         if m:
             group_name = m.lastgroup
             token_type = self.type_map[group_name]
-            converter = self.converters[group_name]
-
-            token = Token(token_type, converter(m.group(group_name)))
+            token = Token(token_type, m.group(group_name))
             pos = m.end()
             return token, pos
 
         raise self.Error((pos, buf[pos:]))
 
-
 class TokenType:
     class Quote: pass
     class LParen: pass
     class RParen: pass
-    class Int: pass
-    class Keyword: pass
-    class Op: pass
-    class Var: pass
-    class Bool: pass
-
-def convert_to_bool(elt):
-    if elt == '#t':
-        return True
-    if elt == '#f':
-        return False
-
-    raise ValueError
-    
-identity = lambda x: x
+    class Comment: pass
+    class Identifier: pass
 
 lisp_rules = [
-    (IF, TokenType.Keyword, identity),
-    (LAMBDA, TokenType.Keyword, identity),
-    (LET, TokenType.Keyword, identity),
-    (LETREC, TokenType.Keyword, identity),
-    (r'\'', TokenType.Quote, identity),
-    (r'\+', TokenType.Op, identity),
-    (r'\-', TokenType.Op, identity),
-    (r'\*', TokenType.Op, identity),
-    (r'=', TokenType.Op, identity),
-    (r'<=', TokenType.Op, identity),
-    (r'or', TokenType.Op, identity),
-    (r'and', TokenType.Op, identity),
-    (r'not', TokenType.Op, identity),
-    (r'cons', TokenType.Op, identity),
-    (r'car', TokenType.Op, identity),
-    (r'cdr', TokenType.Op, identity),
-    (r'null\?', TokenType.Op, identity),
-    (r'\(', TokenType.LParen, identity),
-    (r'\)', TokenType.RParen, identity),
-    (r'[-+]?[0-9]+', TokenType.Int, int),
-    (r'#t', TokenType.Bool, convert_to_bool),
-    (r'#f', TokenType.Bool, convert_to_bool),
-    (r'[a-zA-Z_0-9\!\-\?#]+', TokenType.Var, identity)
+    (r'\'', TokenType.Quote),
+    (r'\(', TokenType.LParen),
+    (r'\)', TokenType.RParen),
+    (r'[a-zA-Z_0-9\!\-\+\*\?#=<>]+', TokenType.Identifier),
+    (r';[^\n\r]*(?:$|\n|\r)', TokenType.Comment)
 ]
 
-lisp_lexer = Lexer(lisp_rules, comment_regex=';[^\n\r]*(?:$|\n|\r)')
+lisp_lexer = Lexer(lisp_rules)
 
 SExp = namedtuple('SExp', ['operator', 'operands'])
 LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
@@ -178,6 +106,7 @@ Binding = namedtuple('Binding', ['var', 'value'])
 LetExp = namedtuple('LetExp', ['bindings', 'body'])
 VarExp = namedtuple('VarExp', ['name'])
 ListExp = namedtuple('ListExp', ['values'])
+OpExp = namedtuple('OpExp', ['value'])
 
 class Parser:
     class Tokenizer:
@@ -188,7 +117,7 @@ class Parser:
             return self.tokens[0]
 
         def pop(self):
-            self.tokens.pop(0)
+            return self.tokens.pop(0)
 
         def no_more_tokens(self):
             return len(self.tokens) == 0
@@ -196,6 +125,19 @@ class Parser:
     class Error(Exception):
         pass
 
+    ops = {'+': 'Add',
+           '-': 'Sub',
+           '*': 'Mul',
+           '=': 'Eq',
+           '<=': 'Leq',
+           'or': 'Or',
+           'and': 'And',
+           'not': 'Not',
+           'cons': 'Cons',
+           'car': 'Car',
+           'cdr': 'Cdr',
+           'null?': 'IsNull'}    
+        
     @classmethod
     def require(cls, cond, msg=None):
         if not cond:
@@ -208,6 +150,7 @@ class Parser:
 
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
+        self.integer_regex = re.compile(r'^[-+]?[0-9]+$')
 
     def pop_lparen_or_die(self):
         self.require(self.tokenizer.top().type == TokenType.LParen)
@@ -224,33 +167,39 @@ class Parser:
         return token in (LET, LETREC)
         
     def parse_item(self):
-        if self.tokenizer.top().type == TokenType.LParen:
+        while self.tokenizer.top() == TokenType.Comment:
             self.tokenizer.pop()
 
-            top_token = self.tokenizer.top()
-            top_token_type = top_token.type
-            top_token_value = top_token.value
+        top_token = self.tokenizer.top()
+        top_token_type = top_token.type
             
-            if top_token_type == TokenType.Keyword and \
-               top_token_value == LAMBDA:
-                self.tokenizer.pop()
-                res = self.parse_lambda()
-            elif top_token_type == TokenType.Keyword and \
-                 top_token_value == IF:
-                self.tokenizer.pop()
-                res = self.parse_if()
-            elif top_token_type == TokenType.Keyword and \
-                 self.is_let(top_token_value):
-                self.tokenizer.pop()
-                res = self.parse_let()
-            else:
-                res = self.parse_s_exp_body()
+        if top_token_type == TokenType.LParen:
+            self.tokenizer.pop()
+            res = self.parse_s_exp()
             self.pop_rparen_or_die()
+        elif top_token_type == TokenType.Identifier:
+            res = self.parse_identifier()
         else:
             res = self.parse_atom()
 
         return res
 
+    def parse_identifier(self):
+        tok = self.tokenizer.pop()
+        assert tok.type == TokenType.Identifier, tok
+        identifier = tok.value
+
+        if identifier in self.ops:
+            return OpExp(self.ops[identifier])
+        elif identifier == '#t':
+            return True
+        elif identifier == '#f':
+            return False
+        elif re.match(self.integer_regex, identifier):
+            return int(identifier)
+        else:
+            return VarExp(identifier)
+        
     def parse_exp(self):
         res = self.parse_item()
         self.require(self.tokenizer.no_more_tokens())
@@ -262,7 +211,7 @@ class Parser:
             while self.tokenizer.top().type == TokenType.LParen:
                 self.tokenizer.pop()
                 top = self.tokenizer.top()
-                self.require(top.type == TokenType.Var, top)
+                self.require(top.type == TokenType.Identifier, top)
                 var = VarExp(top.value)
                 self.tokenizer.pop()
                 top = self.tokenizer.top()
@@ -299,9 +248,9 @@ class Parser:
             res = []
             while self.tokenizer.top().type != TokenType.RParen:
                 top = self.tokenizer.top()
-                self.require(top.type == TokenType.Var, top)
-                res.append(VarExp(top.value))
-                self.tokenizer.pop()
+                param = self.parse_item()
+                self.require(isinstance(param, VarExp), top)
+                res.append(param)
             self.tokenizer.pop()
             return res
 
@@ -314,16 +263,8 @@ class Parser:
 
     def parse_atom(self):
         next_tok = self.tokenizer.top()
-
-        if next_tok.type in (TokenType.Int, TokenType.Bool):
-            self.tokenizer.pop()
-            return next_tok.value
-        elif next_tok.type ==  TokenType.Op:
-            self.tokenizer.pop()
-            return Ops(next_tok.value)
-        elif next_tok.type == TokenType.Var:
-            self.tokenizer.pop()
-            return VarExp(name=next_tok.value)
+        if next_tok.type ==  TokenType.Identifier:
+            return self.parse_identifier()
         elif next_tok.type == TokenType.Quote:
             self.tokenizer.pop()
             return self.parse_quoted_list()
@@ -341,7 +282,20 @@ class Parser:
         self.pop_rparen_or_die()
         return ListExp(values=values)
         
-    def parse_s_exp_body(self):
+    def parse_s_exp(self):
+        tok = self.tokenizer.top()
+        if tok.type == TokenType.Identifier:
+            identifier = tok.value
+            if identifier == IF:
+                self.tokenizer.pop()
+                return self.parse_if()
+            elif identifier == LAMBDA:
+                self.tokenizer.pop()
+                return self.parse_lambda()
+            elif self.is_let(identifier):
+                self.tokenizer.pop()
+                return self.parse_let()
+            
         operator = self.parse_item()
         operands = []
         while self.tokenizer.top().type != TokenType.RParen:
@@ -446,8 +400,8 @@ class Lisp2Cpp:
             return 'Int<{}>'.format(parse)
         elif isinstance(parse, VarExp):
             return self.codegen_var(parse.name)
-        elif isinstance(parse, Ops):
-            return 'Op<OpCode::{}>'.format(parse.name)
+        elif isinstance(parse, OpExp):
+            return 'Op<OpCode::{}>'.format(parse.value)
         elif isinstance(parse, bool):
             return 'Bool<{}>'.format(parse)
         elif isinstance(parse, ListExp):

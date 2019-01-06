@@ -28,8 +28,8 @@ class TokenizerTest(unittest.TestCase):
 
         self.assertEqual(
             self.token_types(tokens),
-            [TokenType.LParen, TokenType.Op, TokenType.Var, TokenType.Var,
-             TokenType.RParen, TokenType.RParen])
+            [TokenType.LParen, TokenType.Identifier, TokenType.Identifier,
+             TokenType.Identifier, TokenType.RParen, TokenType.RParen])
 
         self.assertEqual(
             self.token_values(tokens),
@@ -38,32 +38,33 @@ class TokenizerTest(unittest.TestCase):
     def test_2(self):
         expr = '( lambda (x) (+ x 1))'
         tokens = self.tokenize(expr)
-
+        
         self.assertEqual(
             self.token_types(tokens),
-            [TokenType.LParen, TokenType.Keyword, TokenType.LParen,
-             TokenType.Var, TokenType.RParen, TokenType.LParen,
-             TokenType.Op, TokenType.Var, TokenType.Int, TokenType.RParen,
+            [TokenType.LParen, TokenType.Identifier, TokenType.LParen,
+             TokenType.Identifier, TokenType.RParen, TokenType.LParen,
+             TokenType.Identifier, TokenType.Identifier, TokenType.Identifier, TokenType.RParen,
              TokenType.RParen])
         
         self.assertEqual(
             self.token_values(tokens),
             [LPAREN, LAMBDA, LPAREN, 'x', RPAREN, LPAREN, '+',
-             'x', 1, RPAREN, RPAREN])
+             'x', '1', RPAREN, RPAREN])
         
     def test_comments_1(self):
         expr = ')(x;y()\n'
         tokens = self.tokenize(expr)
         self.assertEqual(
             self.token_types(tokens),
-            [TokenType.RParen, TokenType.LParen, TokenType.Var])
+            [TokenType.RParen, TokenType.LParen, TokenType.Identifier, TokenType.Comment])
         
     def test_comments_2(self):
         expr = ')(x;y()\n  );omg'
         tokens = self.tokenize(expr)
         self.assertEqual(
             self.token_types(tokens),
-            [TokenType.RParen, TokenType.LParen, TokenType.Var, TokenType.RParen])
+            [TokenType.RParen, TokenType.LParen, TokenType.Identifier,
+             TokenType.Comment, TokenType.RParen, TokenType.Comment])
         
     def test_no_whitespace(self):
         expr = '(lambda(x)(+ x 1))'
@@ -71,13 +72,13 @@ class TokenizerTest(unittest.TestCase):
         
         self.assertEqual(
             self.token_types(tokens),
-            [TokenType.LParen, TokenType.Keyword, TokenType.LParen,
-             TokenType.Var, TokenType.RParen, TokenType.LParen, TokenType.Op,
-             TokenType.Var, TokenType.Int, TokenType.RParen, TokenType.RParen])
+            [TokenType.LParen, TokenType.Identifier, TokenType.LParen,
+             TokenType.Identifier, TokenType.RParen, TokenType.LParen, TokenType.Identifier,
+             TokenType.Identifier, TokenType.Identifier, TokenType.RParen, TokenType.RParen])
 
         self.assertEqual(
             self.token_values(tokens),
-            [LPAREN, LAMBDA, LPAREN, 'x', RPAREN, LPAREN, '+', 'x', 1, RPAREN, RPAREN])
+            [LPAREN, LAMBDA, LPAREN, 'x', RPAREN, LPAREN, '+', 'x', '1', RPAREN, RPAREN])
             
     def test_emptylist_1(self):
         expr = '\'()'
@@ -113,7 +114,7 @@ class TokenizerTest(unittest.TestCase):
 
         self.assertEqual(
             self.token_types(tokens),
-            [TokenType.Quote, TokenType.LParen, TokenType.Var, TokenType.RParen])
+            [TokenType.Quote, TokenType.LParen, TokenType.Identifier, TokenType.RParen])
 
         self.assertEqual(
             self.token_values(tokens),
@@ -126,8 +127,8 @@ class TokenizerTest(unittest.TestCase):
 
         self.assertEqual(
             self.token_values(tokens),
-            [LPAREN, LPAREN, True, RPAREN, LPAREN, False,
-             RPAREN, LPAREN, 42, RPAREN, RPAREN])
+            [LPAREN, LPAREN, '#t', RPAREN, LPAREN, '#f',
+             RPAREN, LPAREN, '42', RPAREN, RPAREN])
 
 class ParserTest(unittest.TestCase):
     @staticmethod
@@ -141,7 +142,7 @@ class ParserTest(unittest.TestCase):
         parse = self.parse(expr)
 
         self.assertIsInstance(parse, SExp)
-        self.assertEqual(parse.operator, Ops.Mul)
+        self.assertEqual(parse.operator.value, Parser.ops['*'])
         self.assertEqual(parse.operands,
                          [VarExp(varname), 1])
 
@@ -150,8 +151,7 @@ class ParserTest(unittest.TestCase):
         expr = '(lambda ({varname}) (+ {varname} 1))'.format(varname=varname)
 
         parse = self.parse(expr)
-
-        expectedBody = SExp(operator=Ops.Add,
+        expectedBody = SExp(operator=OpExp('Add'),
                             operands=[VarExp(varname), 1])
         
         self.assertIsInstance(parse, LambdaExp)
@@ -267,6 +267,16 @@ class Lisp2CppTest(unittest.TestCase):
             mapcar_exp(func_exp=double_fun,
                        list_exp=list_exp),
             'Cons<Int<2>, Cons<Int<4>, Cons<Int<6>, EmptyList>>>')
+
+    def test_mess_with_keywords(self):
+        exp = '''(let ((if 1) 
+                       (lambda_var 1) 
+                       (++ 1)
+                       (and_exp 1)
+                       (123abc 1) )
+                     (+ if lambda_var and_exp ++ 123abc))'''
+
+        self.check_cppeval(exp, 'Int<5>')
         
 if __name__ == '__main__':
     unittest.main()
