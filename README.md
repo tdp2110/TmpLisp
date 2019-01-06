@@ -29,9 +29,13 @@ a template metaprogram with
 
     #include "tmp_lisp.hpp"
 
-    using Result = Eval<SExp<Op<OpCode::Add>, Int<1>,Int<2>>, EmptyEnv>;
+    using Result = Eval<SExp<Op<OpCode::Add>, Int<1>, Int<2>>, EmptyEnv>;
 
     typename Result::force_compiler_error eval;
+
+Notice the straightforward mapping from the Scheme expression to a C++ template expression. Lisp expressions naturally turn into C++ types built out of primitives from tmp_lisp.hpp.
+All lisp values are represented by C++ types.
+The metafunction `Eval` computes an associated type of an expression, its value.
 
 `force_compiler_error` is only present to produce a compiler error in which the compiler
 will pretty print the (simplified) form of the type alias `Result`:
@@ -77,12 +81,7 @@ clang-format we (currently) get:
              EmptyEnv>;
     typename Result::force_compiler_error eval;
 
-Lisp expressions naturally turn into C++ types built out of primitives from tmp_lisp.hpp.
-All lisp values are represented by C++ types.
-The metafunction `Eval` computes an associated type of an expression, its value.
-The last line, `typename Result::force_compiler_error eval` is present only to
-force a compiler error which should mention the type computed by `Eval`, `Result`.
-For example, using clang we get the following output
+Compiling, we get:
 
     ➜  TmpLisp git:(master) ✗ clang++ fact.cpp -std=c++1z
     fact.cpp:15:18: error: no type named 'force_compiler_error' in 'Int<3628800>'
