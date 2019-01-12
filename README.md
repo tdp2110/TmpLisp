@@ -2,7 +2,7 @@
 Attempt at implementing the Scheme dialect of Lisp in C++ Template Metaprogramming (work in progress).
 I'm not the first person to attempt this.
 
-_Requires C++17_
+_Requires C++17 and Python3_
 
 ## Introduction
 

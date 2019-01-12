@@ -31,7 +31,7 @@ class Token(namedtuple('Token', ['type', 'value'])):
 
 class Lexer:
     '''
-    Taken from https://eli.thegreenplace.net/2013/06/25/regex-based-lexical-analysis-in-python-and-javascript/
+    Approach taken from https://eli.thegreenplace.net/2013/06/25/regex-based-lexical-analysis-in-python-and-javascript/
     '''
     class Error(Exception):
         pass
@@ -123,8 +123,8 @@ OpExp = namedtuple('OpExp', ['value'])
 
 class Parser:
     class Tokenizer:
-        def __init__(self, tokens):
-            self.tokens = list(tokens)
+        def __init__(self, text):
+            self.tokens = list(lisp_lexer.tokens(text))
 
         def top(self):
             return self.tokens[0]
@@ -151,35 +151,40 @@ class Parser:
            'cdr': 'Cdr',
            'null?': 'IsNull'}
 
-    @classmethod
-    def require(cls, cond, msg=None):
-        if not cond:
-            raise cls.Error(msg)
-
-    @classmethod
-    def parse(cls, text):
-        tokenizer = cls.Tokenizer(lisp_lexer.tokens(text))
-        return cls(tokenizer).parse_exp()
-
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
         self.integer_regex = re.compile(r'^[-+]?[0-9]+$')
 
-    def pop_lparen_or_die(self):
-        self.require(self.tokenizer.top().type == TokenType.LParen)
+    @classmethod
+    def parse(cls, text):
+        tokenizer = cls.Tokenizer(text)
+        return cls(tokenizer).parse_exp()
+
+    def parse_exp(self):
+        res = self._parse_item()
+        self._require(self.tokenizer.no_more_tokens())
+        return res
+
+    def _pop_lparen_or_die(self):
+        self._require(self.tokenizer.top().type == TokenType.LParen)
         self.tokenizer.pop()
 
-    def pop_rparen_or_die(self):
-        self.require(self.tokenizer.top().type == TokenType.RParen)
+    def _pop_rparen_or_die(self):
+        self._require(self.tokenizer.top().type == TokenType.RParen)
         self.tokenizer.pop()
+
+    @classmethod
+    def _require(cls, cond, msg=None):
+        if not cond:
+            raise cls.Error(msg)
 
     @staticmethod
-    def is_let(token):
+    def _is_let(token):
         # I'm not handling all the different let, let*, letrecs properly
         # I think what I have is closes to letrec
         return token in (LET, LETREC)
 
-    def parse_item(self):
+    def _parse_item(self):
         while self.tokenizer.top() == TokenType.Comment:
             self.tokenizer.pop()
 
@@ -188,16 +193,16 @@ class Parser:
 
         if top_token_type == TokenType.LParen:
             self.tokenizer.pop()
-            res = self.parse_s_exp()
-            self.pop_rparen_or_die()
+            res = self._parse_parenthesized_exp()
+            self._pop_rparen_or_die()
         elif top_token_type == TokenType.Identifier:
-            res = self.parse_identifier()
+            res = self._parse_identifier()
         else:
-            res = self.parse_atom()
+            res = self._parse_atom()
 
         return res
 
-    def parse_identifier(self):
+    def _parse_identifier(self):
         tok = self.tokenizer.pop()
         assert tok.type == TokenType.Identifier, tok
         identifier = tok.value
@@ -213,112 +218,107 @@ class Parser:
         else:
             return VarExp(identifier)
 
-    def parse_exp(self):
-        res = self.parse_item()
-        self.require(self.tokenizer.no_more_tokens())
-        return res
-
-    def var_exp(self, value):
-        self.require(self.integer_regex.match(value) is None)
+    def _var_exp(self, value):
+        self._require(self.integer_regex.match(value) is None)
         return VarExp(value)
     
-    def parse_let(self):
+    def _parse_let(self):
         def parse_bindings():
             res = []
             while self.tokenizer.top().type == TokenType.LParen:
                 self.tokenizer.pop()
                 top = self.tokenizer.top()
-                self.require(top.type == TokenType.Identifier, top)
-                var = self.var_exp(top.value)
+                self._require(top.type == TokenType.Identifier, top)
+                var = self._var_exp(top.value)
                 self.tokenizer.pop()
                 top = self.tokenizer.top()
-                value = self.parse_item()
-                self.pop_rparen_or_die()
+                value = self._parse_item()
+                self._pop_rparen_or_die()
                 res.append(Binding(var=var, value=value))
             return res
 
         def parse_body():
-            return self.parse_item()
+            return self._parse_item()
 
-        self.pop_lparen_or_die()
+        self._pop_lparen_or_die()
         bindings = parse_bindings()
-        self.pop_rparen_or_die()
+        self._pop_rparen_or_die()
 
         body = parse_body()
 
         return LetExp(bindings=bindings, body=body)
 
-    def parse_if(self):
-        cond = self.parse_item()
+    def _parse_if(self):
+        cond = self._parse_item()
 
-        if_true = self.parse_item()
+        if_true = self._parse_item()
 
-        if_false = self.parse_item()
+        if_false = self._parse_item()
 
         return IfExp(cond=cond,
                      if_true=if_true,
                      if_false=if_false)
 
-    def parse_lambda(self):
+    def _parse_lambda(self):
         def parse_arglist():
-            self.pop_lparen_or_die()
+            self._pop_lparen_or_die()
             res = []
             while self.tokenizer.top().type != TokenType.RParen:
                 top = self.tokenizer.top()
-                param = self.parse_item()
-                self.require(isinstance(param, VarExp), top)
+                param = self._parse_item()
+                self._require(isinstance(param, VarExp), top)
                 res.append(param)
             self.tokenizer.pop()
             return res
 
         def parse_body():
-            return self.parse_item()
+            return self._parse_item()
 
         return LambdaExp(
             arglist=parse_arglist(),
             body=parse_body())
 
-    def parse_atom(self):
+    def _parse_atom(self):
         next_tok = self.tokenizer.top()
         if next_tok.type == TokenType.Identifier:
-            return self.parse_identifier()
+            return self._parse_identifier()
         elif next_tok.type == TokenType.Quote:
             self.tokenizer.pop()
-            self.require(self.tokenizer.top().type == TokenType.LParen,
+            self._require(self.tokenizer.top().type == TokenType.LParen,
                          'only know how to parse quoted lists right now')
-            return self.parse_quoted_list()
+            return self._parse_quoted_list()
 
-        self.require(False, next_tok)
+        self._require(False, next_tok)
 
-    def parse_quoted_list(self):
-        self.pop_lparen_or_die()
+    def _parse_quoted_list(self):
+        self._pop_lparen_or_die()
         values = []
         while self.tokenizer.top().type != TokenType.RParen:
-            item = self.parse_atom()
+            item = self._parse_atom()
             if isinstance(item, VarExp):
                 raise self.Error('don\'t know how to handle strings yet')
             values.append(item)
-        self.pop_rparen_or_die()
+        self._pop_rparen_or_die()
         return ListExp(values=values)
 
-    def parse_s_exp(self):
+    def _parse_parenthesized_exp(self):
         tok = self.tokenizer.top()
         if tok.type == TokenType.Identifier:
             identifier = tok.value
             if identifier == IF:
                 self.tokenizer.pop()
-                return self.parse_if()
+                return self._parse_if()
             elif identifier == LAMBDA:
                 self.tokenizer.pop()
-                return self.parse_lambda()
-            elif self.is_let(identifier):
+                return self._parse_lambda()
+            elif self._is_let(identifier):
                 self.tokenizer.pop()
-                return self.parse_let()
+                return self._parse_let()
 
-        operator = self.parse_item()
+        operator = self._parse_item()
         operands = []
         while self.tokenizer.top().type != TokenType.RParen:
-            operands.append(self.parse_item())
+            operands.append(self._parse_item())
 
         return SExp(operator=operator,
                     operands=operands)
@@ -335,18 +335,33 @@ class Lisp2Cpp:
     def __init__(self, text):
         self.parse = Parser.parse(text)
         self.varmap = {}
-        self.compute_varmap(self.parse, self.varmap)
+        self._compute_varmap(self.parse, self.varmap)
+
+    def codegen(self, evaluate=False, include_header=False):
+        if include_header:
+            res = self._paste_header()
+        else:
+            res = self.include
+            
+        res += self._codegen_varlist()
+        res += 'using Result = Eval<{}, EmptyEnv>'.format(
+            self._codegen(self.parse)) + ';'
+
+        if evaluate:
+            res += '\n\rtypename Result::force_compiler_error eval;'
+
+        return res
 
     @classmethod
-    def compute_varmap(cls, parse, varmap):
+    def _compute_varmap(cls, parse, varmap):
         if isinstance(parse, SExp):
-            cls.compute_varmap(parse.operator, varmap)
+            cls._compute_varmap(parse.operator, varmap)
             for operand in parse.operands:
-                cls.compute_varmap(operand, varmap)
+                cls._compute_varmap(operand, varmap)
         elif isinstance(parse, LambdaExp):
             for exp in parse.arglist:
-                cls.compute_varmap(exp, varmap)
-            cls.compute_varmap(parse.body, varmap)
+                cls._compute_varmap(exp, varmap)
+            cls._compute_varmap(parse.body, varmap)
         elif isinstance(parse, VarExp):
             if parse.name not in varmap:
                 varmap[parse.name] = len(varmap)
@@ -354,20 +369,20 @@ class Lisp2Cpp:
             for binding in parse.bindings:
                 if binding.var.name not in varmap:
                     varmap[binding.var.name] = len(varmap)
-                cls.compute_varmap(binding.value, varmap)
-            cls.compute_varmap(parse.body, varmap)
+                cls._compute_varmap(binding.value, varmap)
+            cls._compute_varmap(parse.body, varmap)
 
-    def codegen_varlist(self):
+    def _codegen_varlist(self):
         res = ''
         for name, ix in self.varmap.items():
             res += 'using {name_alias} = Var<{ix}>;\n'.format(
-                name_alias=self.codegen_var(name),
+                name_alias=self._codegen_var(name),
                 ix=ix
             )
         return res + '\n'
 
     @classmethod
-    def paste_header(cls):
+    def _paste_header(cls):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(dir_path, cls.header_name), 'r') as f:
             res = '/******************* BEGIN TMP_LISP *************/' + \
@@ -377,78 +392,64 @@ class Lisp2Cpp:
             res = res.replace('#pragma once', '')  # such a hack ...
             return res
 
-    def codegen(self, evaluate=False, include_header=False):
-        if include_header:
-            res = self.paste_header()
-        else:
-            res = self.include
-        res += self.codegen_varlist()
-        res += 'using Result = Eval<{}, EmptyEnv>'.format(
-            self.codegen_(self.parse)) + ';'
-
-        if evaluate:
-            res += '\n\rtypename Result::force_compiler_error eval;'
-
-        return res
-
-    def codegen_(self, parse):
+    def _codegen(self, parse):
         if isinstance(parse, LambdaExp):
             return 'Lambda<{body_codegen}, EmptyEnv, {params_codegen}>'.format(
-                body_codegen=self.codegen_(parse.body),
-                params_codegen=','.join(self.codegen_(param)
+                body_codegen=self._codegen(parse.body),
+                params_codegen=','.join(self._codegen(param)
                                         for param in parse.arglist)
             )
         elif isinstance(parse, LetExp):
             return 'Let<{env_codegen}, {body_codegen}>'.format(
-                env_codegen=self.env_codegen(parse.bindings),
-                body_codegen=self.codegen_(parse.body))
+                env_codegen=self._env_codegen(parse.bindings),
+                body_codegen=self._codegen(parse.body))
         elif isinstance(parse, SExp):
             return 'SExp<{operator}, {operands_codegen}>'.format(
-                operator=self.codegen_(parse.operator),
-                operands_codegen=','.join(self.codegen_(operand)
+                operator=self._codegen(parse.operator),
+                operands_codegen=','.join(self._codegen(operand)
                                           for operand in parse.operands)
             )
         elif isinstance(parse, IfExp):
             return 'If<{cond}, {if_true}, {if_false}>'.format(
-                cond=self.codegen_(parse.cond),
-                if_true=self.codegen_(parse.if_true),
-                if_false=self.codegen_(parse.if_false)
+                cond=self._codegen(parse.cond),
+                if_true=self._codegen(parse.if_true),
+                if_false=self._codegen(parse.if_false)
             )
         elif isinstance(parse, bool):
             return 'Bool<{}>'.format(str(parse).lower())
         elif isinstance(parse, int):
             return 'Int<{}>'.format(parse)
         elif isinstance(parse, VarExp):
-            return self.codegen_var(parse.name)
+            return self._codegen_var(parse.name)
         elif isinstance(parse, OpExp):
             return 'Op<OpCode::{}>'.format(parse.value)
         elif isinstance(parse, bool):
             return 'Bool<{}>'.format(parse)
         elif isinstance(parse, ListExp):
-            return self.codegen_list(parse.values)
+            return self._codegen_list(parse.values)
         else:
             raise self.ConvertError(
                 'don\'t know how to convert {} to CPP'.format(parse))
 
     @staticmethod
     def name_to_cpp(lisp_var_name):
-        return re.sub('[^0-9a-zA-Z_]+', '_', lisp_var_name)
+        return re.sub('[^0-9a-zA-Z_\-!\?#]+', '_', lisp_var_name)
 
-    def codegen_list(self, list_values):
+    def _codegen_list(self, list_values):
         if not list_values:
             return 'EmptyList'
-        return 'Cons<{}, {}>'.format(self.codegen_(list_values[0]),
-                                     self.codegen_list(list_values[1:]))
+        return 'Cons<{}, {}>'.format(self._codegen(list_values[0]),
+                                     self._codegen_list(list_values[1:]))
 
-    def codegen_var(self, name):
+    def _codegen_var(self, name):
         return 'Var_{}'.format(self.name_to_cpp(name))
 
-    def env_codegen(self, bindings):
+    def _env_codegen(self, bindings):
         return 'Env<{bindings_codegen}>'.format(
             bindings_codegen=','.join(
                 'Binding<{var}, {value}>'.format(
-                    var=self.codegen_(binding.var),
-                    value=self.codegen_(binding.value)
+                    var=self._codegen(binding.var),
+                    value=self._codegen(binding.value)
                 ) for binding in bindings
             ))
 
