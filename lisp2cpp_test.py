@@ -261,7 +261,7 @@ class Lisp2CppTest(unittest.TestCase):
             return '''(letrec ((mapcar (lambda (func list)
                                        (if (null? list)
                                            '()
-                                           (cons (func (car list)) (mapcar func (cdr list)))   
+                                           (cons (func (car list)) (mapcar func (cdr list)))
                                         ))))
                         (mapcar {func_exp} {list_exp}))'''.format(func_exp=func_exp,
                                                                   list_exp=list_exp)
@@ -275,14 +275,30 @@ class Lisp2CppTest(unittest.TestCase):
             'Cons<Int<2>, Cons<Int<4>, Cons<Int<6>, EmptyList>>>')
 
     def test_mess_with_keywords(self):
-        exp = '''(let ((if 1) 
-                       (lambda_var 1) 
+        exp = '''(let ((if 1)
+                       (lambda_var 1)
                        (++ 1)
                        (and_exp 1)
                        (123abc 1) )
                      (+ if lambda_var and_exp ++ 123abc))'''
 
         self.check_cppeval(exp, 'Int<5>')
+
+    def test_fib(self):
+        def fib_exp(n):
+            return '''(letrec ((fib (lambda (n)
+                                      (if (<= n 0)
+                                          1
+                                          (+ (fib (- n 1)) (fib (- n 2)))))))
+                         (fib {}))'''.format(n)
+
+        def fib_py(n):
+            if n <= 0:
+                return 1
+            return fib_py(n - 1) + fib_py(n - 2)
+
+        for n in range(10):
+            self.check_cppeval(fib_exp(n), 'Int<{}>'.format(fib_py(n)))
 
 
 if __name__ == '__main__':
