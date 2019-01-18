@@ -198,6 +198,9 @@ class Lisp2CppTest(unittest.TestCase):
         codegen_process.stdout.close()
         out, err = compile_process.communicate()
 
+        codegen_process.wait()
+        compile_process.wait()
+
         self.assertEqual(compile_process.returncode, 0, (out, err))
 
     def test_varmap_1(self):
@@ -300,6 +303,13 @@ class Lisp2CppTest(unittest.TestCase):
         for n in range(10):
             self.check_cppeval(fib_exp(n), 'Int<{}>'.format(fib_py(n)))
 
+    def test_unary_minus(self):
+        self.check_cppeval('(- 1)', 'Int<-1>')
+        self.check_cppeval('(- 0)', 'Int<0>')
+
+    def test_lots_of_minuses(self):
+        self.check_cppeval('(- 1 2)', 'Int<-1>')
+        self.check_cppeval('(- 1 2 3)', 'Int<-4>')
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,7 +10,7 @@
 #pragma once
 
 /*****************
-   Builtin Types
+   Syntax constructions
  *****************/
 
 template <bool b> struct Bool {};
@@ -48,10 +48,6 @@ enum class OpCode {
 };
 
 template <OpCode op> struct Op {};
-
-/**********************
-   Variables, Bindings
-***********************/
 
 template <int i> struct Var {};
 
@@ -207,8 +203,12 @@ template <int... is> struct Apply_<Op<OpCode::Add>, Int<is>...> {
   using type = Int<(... + is)>;
 };
 
-template <int i1, int i2> struct Apply_<Op<OpCode::Sub>, Int<i1>, Int<i2>> {
-  using type = Int<i1 - i2>;
+template <int i1, int ... is> struct Apply_<Op<OpCode::Sub>, Int<i1>, Int<is>...> {
+    using type = Int<i1 - (... + is)>;
+};
+
+template <int i> struct Apply_<Op<OpCode::Sub>, Int<i>> {
+  using type = Int<-i>;
 };
 
 template <int... is> struct Apply_<Op<OpCode::Mul>, Int<is>...> {
@@ -227,10 +227,6 @@ template <int i1, int i2> struct Apply_<Op<OpCode::Neq>, Int<i1>, Int<i2>> {
 
 template <int i1, int i2> struct Apply_<Op<OpCode::Leq>, Int<i1>, Int<i2>> {
   using type = Bool<i1 <= i2>;
-};
-
-template <int i> struct Apply_<Op<OpCode::Neg>, Int<i>> {
-  using type = Int<-i>;
 };
 
 template <class... Exps> struct Apply_<Op<OpCode::Eq>, Exps...> {
