@@ -1,4 +1,11 @@
-* handle comments
 * strings
 * handle the different types of let
 * mutable state ... oh dear
+* Try compile time parsing, eg, using Hana Dusikova's ctll thing, from her CTRE library.
+  We could try the following simplified grammar for Lisp:
+	P  -> E $$
+ 	E  -> atom
+	   -> ' E
+	   -> ( E Es )
+	Es -> E Es
+	   -> \epsilon
