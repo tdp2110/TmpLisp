@@ -1,9 +1,10 @@
 #include "ThirdParty/ctre.hpp"
-#include <boost/hana.hpp>
 
 #include <iostream>
 #include <optional>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 
 using namespace ctre::literals;
 
@@ -27,35 +28,37 @@ static constexpr std::optional<std::string_view> lexit(std::string_view s) {
 struct Word {};
 struct Number {};
 struct LexError {};
-
-enum class TokenType { Word, Number, LexError, StopSymbol };
-
-template <TokenType> struct Token {};
-
-namespace hana = boost::hana;
+struct StopSymbol {};
 
 static constexpr auto word_regex = "^([A-Za-z]+)"_ctre;
 static constexpr auto number_regex = "^([\\d]+)"_ctre;
 
-template <class LexedSoFar>
-static constexpr auto lexme_(std::string_view s, LexedSoFar lexed_so_far) {
-  if (s.size() == 0) {
-    return hana::append(lexed_so_far, TokenType::StopSymbol);
-  }
+static constexpr std::optional<std::string_view>
+MatchesWord(std::string_view s) {
   if (auto [re, m] = word_regex.search(s); re) {
-    return lexme_(s.substr(m.size()),
-                  hana::append(lexed_so_far, TokenType::Word));
+    return s.substr(m.size());
   }
-  if (auto [re, m] = number_regex.search(s); re) {
-    return lexme_(s.substr(m.size()),
-                  hana::append(lexed_so_far, TokenType::Number));
-  }
-  return hana::append(lexed_so_far, TokenType::LexError);
+
+  return std::nullopt;
 }
 
-static constexpr auto lexme(std::string_view s) {
-  return lexme_(s, hana::make<hana::basic_tuple_tag>());
-}
+template <auto &input, class LexedSoFar> struct Lexer {
+  static constexpr auto _input = input;
+  static constexpr auto matchedWord = MatchesWord(_input);
+
+  using tokens = std::conditional_t<
+      matchedWord,
+      typename Lexer<*matchedWord, decltype(ctll::push_front(
+                                       std::declval<Word>(),
+                                       std::declval<LexedSoFar>()))>::results,
+      std::conditional_t<_input.size() == 0, LexedSoFar,
+                         decltype(
+                             ctll::push_front(std::declval<LexError>(),
+                                              std::declval<LexedSoFar>()))>>;
+};
+
+template <auto &input>
+using Tokens = typename Lexer<input, ctll::empty_list>::tokens;
 
 int main() {
   {
@@ -66,7 +69,8 @@ int main() {
     std::cout << *res << "\n";
   }
 
-  lexme("abc123");
+  constexpr auto ct_string = ctll::basic_fixed_string{"abc123"};
+  using tokens = Tokens<decltype(ct_string)>;
 
   return 0;
 }
