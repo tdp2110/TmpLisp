@@ -1,3 +1,4 @@
 a.out
 *~
 __pycache__
+*.dSYM
