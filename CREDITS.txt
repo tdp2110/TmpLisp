@@ -1,0 +1,10 @@
+Python Lexer approach taken from Eli Bendersky:
+-----------------------------------------------
+
+https://eli.thegreenplace.net/2013/06/25/regex-based-lexical-analysis-in-python-and-javascript/
+
+CTRE:
+-----
+The MIT License (MIT)
+
+Copyright (c) 2014-2019 Hana Dusíková (hanicka@hanicka.net)
