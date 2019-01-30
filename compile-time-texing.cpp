@@ -70,7 +70,7 @@ int main() {
   }
 
   constexpr auto ct_string = ctll::basic_fixed_string{"abc123"};
-  using tokens = Tokens<decltype(ct_string)>;
+  using tokens = Tokens<ct_string>;
 
   return 0;
 }
