@@ -76,7 +76,7 @@ clang-format we (currently) get:
                                        SExp<Op<OpCode::Mul>, Var_n,
                                             SExp<Var_fact, SExp<Op<OpCode::Sub>,
                                                               Var_n, Int<1>>>>>,
-                                    EmptyEnv, Var_n>>>,
+                                    Var_n>>>,
                  SExp<Var_fact, Int<10>>>,
              EmptyEnv>;
     typename Result::force_compiler_error eval;
@@ -100,7 +100,7 @@ Consider mapcar.scm:
                          1
                          (* n (fact (- n 1)))
                          )
-                     ))               
+                     ))
              (mapcar (lambda (f list)
                        (if (null? list)
                            '()
@@ -126,14 +126,14 @@ Which computes the factorial of each integer in 1..5. We compile this with `pyth
                                   SExp<Op<OpCode::Mul>, Var_n,
                                        SExp<Var_fact,
                                             SExp<Op<OpCode::Sub>, Var_n, Int<1>>>>>,
-                               EmptyEnv, Var_n>>,
+                               Var_n>>,
                 Binding<Var_mapcar,
                         Lambda<If<SExp<Op<OpCode::IsNull>, Var_list>, EmptyList,
                                   SExp<Op<OpCode::Cons>,
                                        SExp<Var_f, SExp<Op<OpCode::Car>, Var_list>>,
                                        SExp<Var_mapcar, Var_f,
                                             SExp<Op<OpCode::Cdr>, Var_list>>>>,
-                               EmptyEnv, Var_f, Var_list>>>,
+                               Var_f, Var_list>>>,
             SExp<Var_mapcar, Var_fact,
                  Cons<Int<1>,
                       Cons<Int<2>,
@@ -149,4 +149,3 @@ Compiling we get:
     typename Result::force_compiler_error eval;
     ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~
     1 error generated.
-
