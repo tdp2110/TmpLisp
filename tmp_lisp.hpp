@@ -26,7 +26,9 @@ struct EmptyList {};
 
 template <class Operator, class... Operands> struct SExp {};
 
-template <class Body, class Environment, class... Params> struct Lambda {};
+template <class Body, class... Params> struct Lambda {};
+
+template <class Body, class Environment, class... Params> struct Closure {};
 
 template <class Cond, class IfTrue, class IfFalse> struct If {};
 
@@ -98,9 +100,9 @@ template <class Value, class Environment> struct PushEnv {
 
 template <class LambdaBody, class LambdaEnv, class... LambdaParams,
           class Environment>
-struct PushEnv<Lambda<LambdaBody, LambdaEnv, LambdaParams...>, Environment> {
+struct PushEnv<Closure<LambdaBody, LambdaEnv, LambdaParams...>, Environment> {
   using type =
-      Lambda<LambdaBody, ExtendEnv_t<LambdaEnv, Environment>, LambdaParams...>;
+      Closure<LambdaBody, ExtendEnv_t<LambdaEnv, Environment>, LambdaParams...>;
 };
 
 template <class Variable, class Value, class... Bindings>
@@ -139,7 +141,7 @@ template <int i, class _> struct Eval_<Int<i>, _> { using type = Int<i>; };
 template <bool b, class _> struct Eval_<Bool<b>, _> { using type = Bool<b>; };
 
 template <int i, class Env> struct Eval_<Var<i>, Env> {
-  using type = Lookup_t<Var<i>, Env>;
+  using type = Eval<Lookup_t<Var<i>, Env>, Env>;
 };
 
 template <class Cond, class IfTrue, class IfFalse, class Env>
@@ -171,9 +173,14 @@ struct Eval_<If<Cond, IfTrue, IfFalse>, Env> {
       Eval<If<detail::ConvertToBool_t<Eval<Cond, Env>>, IfTrue, IfFalse>, Env>;
 };
 
+template <class Body, class... Params, class Env>
+struct Eval_<Lambda<Body, Params...>, Env> {
+  using type = Closure<Body, Env, Params...>;
+};
+
 template <class Body, class LambdaEnv, class... Params, class Env>
-struct Eval_<Lambda<Body, LambdaEnv, Params...>, Env> {
-  using type = Lambda<Body, ExtendEnv_t<LambdaEnv, Env>, Params...>;
+struct Eval_<Closure<Body, LambdaEnv, Params...>, Env> {
+  using type = Closure<Body, ExtendEnv_t<LambdaEnv, Env>, Params...>;
 };
 
 template <class Car, class Cdr, class Env> struct Eval_<Cons<Car, Cdr>, Env> {
@@ -275,7 +282,7 @@ template <class Value> struct Apply_<Op<OpCode::IsNull>, Value> {
 template <> struct Apply_<Op<OpCode::IsNull>, EmptyList> { using type = True; };
 
 template <class Body, class Env, class... Params, class... Args>
-struct Apply_<Lambda<Body, Env, Params...>, Args...> {
+struct Apply_<Closure<Body, Env, Params...>, Args...> {
   static_assert(sizeof...(Params) == sizeof...(Args));
   using ExtendedEnv =
       ExtendEnv_t<Env,
@@ -287,7 +294,7 @@ struct Apply_<Lambda<Body, Env, Params...>, Args...> {
   Compound forms
 ******************/
 
-template <class Env, class Body> using Let = SExp<Lambda<Body, Env>>;
+template <class Env, class Body> using Let = SExp<Closure<Body, Env>>;
 
 template <class DefaultExp, class... Cases> struct Cond_;
 

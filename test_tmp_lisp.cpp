@@ -55,8 +55,8 @@ int main() {
   using TestIf5 = If<TestIf4, TestIf3, TestIf2>;
   static_assert(is_same_v<Eval<TestIf5, TestEnv1>, Eval<TestIf3, TestEnv1>>);
 
-  using TestLambda1 =
-      Lambda<If<Var0, Var1, Var2>, Env<Binding<Var1, One>>, Param<0>, Param<2>>;
+  using TestLambda1 = Closure<If<Var0, Var1, Var2>, Env<Binding<Var1, One>>,
+                              Param<0>, Param<2>>;
   using TestEnv2 = Env<Binding<Var3, Two>>;
   static_assert(is_same_v<Eval<SExp<TestLambda1, Var3, Three>, TestEnv2>, One>);
   static_assert(
@@ -73,7 +73,7 @@ int main() {
       is_same_v<Eval<SExp<Op<OpCode::Eq>, Two, Three>, Env<>>, False>);
 
   using TestFunc2 =
-      Eval<Lambda<SExp<Op<OpCode::Add>, Var0, Var1>, Env<Binding<Var0, One>>>,
+      Eval<Closure<SExp<Op<OpCode::Add>, Var0, Var1>, Env<Binding<Var0, One>>>,
            Env<Binding<Var1, Two>>>;
   using TestFunc2CallValue = Eval<SExp<TestFunc2>, EmptyEnv>;
   static_assert(is_same_v<TestFunc2CallValue, Three>);
@@ -126,7 +126,7 @@ int main() {
       Lambda<If<SExp<Op<OpCode::Leq>, Var0, Zero>, One,
                 SExp<Op<OpCode::Mul>, Var0,
                      SExp<FactVar, SExp<Op<OpCode::Sub>, Var0, One>>>>,
-             EmptyEnv, Var0>;
+             Var0>;
 
   using ZeroFactorial =
       Eval<SExp<FactExp, Zero>, Env<Binding<FactVar, FactExp>>>;
@@ -156,7 +156,7 @@ int main() {
       Lambda<If<SExp<Op<OpCode::Leq>, XParam, Int<0>>, AccumParam,
                 SExp<FactVar, SExp<Op<OpCode::Sub>, XParam, Int<1>>,
                      SExp<Op<OpCode::Mul>, AccumParam, XParam>>>,
-             EmptyEnv, XParam, AccumParam>;
+             XParam, AccumParam>;
 
   static_assert(is_same_v<Eval<SExp<FactTailRecInner, Int<5>, Int<1>>,
                                Env<Binding<FactVar, FactTailRecInner>>>,
@@ -164,10 +164,10 @@ int main() {
 
   using Arg = Var<44324>;
   using FactInnerVar = Var<5646>;
-  using Fact2 = Lambda<SExp<FactInnerVar, Arg, Int<1>>,
-                       Env<Binding<FactInnerVar, FactTailRecInner>,
-                           Binding<FactVar, FactTailRecInner>>,
-                       Arg>;
+  using Fact2 = Closure<SExp<FactInnerVar, Arg, Int<1>>,
+                        Env<Binding<FactInnerVar, FactTailRecInner>,
+                            Binding<FactVar, FactTailRecInner>>,
+                        Arg>;
 
   static_assert(is_same_v<Eval<SExp<Fact2, Int<4>>, EmptyEnv>, Int<24>>);
 
@@ -179,17 +179,17 @@ int main() {
   using IsEvenVar = Var<994324>;
   using NParam = Var<422340>;
   using IsEvenExp =
-      Lambda<If<SExp<Op<OpCode::Eq>, NParam, Int<0>>, Bool<true>,
+      Lambda<If<SExp<Op<OpCode::Eq>, NParam, Int<0>>, True,
                 SExp<IsOddVar, SExp<Op<OpCode::Sub>, NParam, Int<1>>>>,
-             EmptyEnv, NParam>;
+             NParam>;
   using IsOddExp =
-      Lambda<If<SExp<Op<OpCode::Eq>, NParam, Int<0>>, Bool<false>,
+      Lambda<If<SExp<Op<OpCode::Eq>, NParam, Int<0>>, False,
                 SExp<IsEvenVar, SExp<Op<OpCode::Sub>, NParam, Int<1>>>>,
-             EmptyEnv, NParam>;
+             NParam>;
   using IsOdd =
-      Lambda<SExp<IsOddVar, Arg>,
-             Env<Binding<IsOddVar, IsOddExp>, Binding<IsEvenVar, IsEvenExp>>,
-             Arg>;
+      Closure<SExp<IsOddVar, Arg>,
+              Env<Binding<IsOddVar, IsOddExp>, Binding<IsEvenVar, IsEvenExp>>,
+              Arg>;
 
   static_assert(is_same_v<Eval<SExp<IsOdd, Int<12>>, EmptyEnv>, Bool<false>>);
   static_assert(is_same_v<Eval<SExp<IsOdd, Int<41>>, EmptyEnv>, Bool<true>>);
@@ -217,7 +217,7 @@ int main() {
   using Len = Lambda<If<SExp<Op<OpCode::IsNull>, Param>, Int<0>,
                         SExp<Op<OpCode::Add>, Int<1>,
                              SExp<LenVar, SExp<Op<OpCode::Cdr>, Param>>>>,
-                     EmptyEnv, Param>;
+                     Param>;
 
   static_assert(
       is_same_v<Eval<SExp<Len, TestList>,
@@ -266,12 +266,12 @@ int main() {
       Lambda<If<SExp<Op<OpCode::IsNull>, ListVar>, EmptyList,
                 Cons<SExp<FuncVar, SExp<Op<OpCode::Car>, ListVar>>,
                      SExp<MapCarVar, FuncVar, SExp<Op<OpCode::Cdr>, ListVar>>>>,
-             EmptyEnv, FuncVar, ListVar>;
+             FuncVar, ListVar>;
 
   using SomeList = Cons<Int<2>, Cons<Int<4>, Cons<Int<6>, EmptyList>>>;
   using DoubleParam = Var<923098>;
   using Double =
-      Lambda<SExp<Op<OpCode::Mul>, Int<2>, DoubleParam>, EmptyEnv, DoubleParam>;
+      Lambda<SExp<Op<OpCode::Mul>, Int<2>, DoubleParam>, DoubleParam>;
 
   using MappedList = Eval<Let<Env<Binding<MapCarVar, MapCarExp>>,
                               SExp<MapCarVar, Double, SomeList>>,
@@ -281,7 +281,7 @@ int main() {
                 Cons<Int<4>, Cons<Int<8>, Cons<Int<12>, EmptyList>>>>);
 
   using FactFun =
-      Lambda<SExp<FactVar, FactArg>, Env<Binding<FactVar, FactExp>>, FactArg>;
+      Closure<SExp<FactVar, FactArg>, Env<Binding<FactVar, FactExp>>, FactArg>;
 
   using MappedByFact = Eval<SExp<MapCarVar, FactFun, SomeList>,
                             Env<Binding<MapCarVar, MapCarExp>>>;

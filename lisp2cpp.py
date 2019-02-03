@@ -394,7 +394,7 @@ class Lisp2Cpp:
 
     def _codegen(self, parse):
         if isinstance(parse, LambdaExp):
-            return 'Lambda<{body_codegen}, EmptyEnv, {params_codegen}>'.format(
+            return 'Lambda<{body_codegen}, {params_codegen}>'.format(
                 body_codegen=self._codegen(parse.body),
                 params_codegen=','.join(self._codegen(param)
                                         for param in parse.arglist)
