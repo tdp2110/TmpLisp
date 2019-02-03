@@ -134,11 +134,9 @@ template <class Exp, class Env> struct Eval_;
 
 template <class Exp, class Env> using Eval = detail::Result_t<Eval_<Exp, Env>>;
 
-template <int i, class Env> struct Eval_<Int<i>, Env> { using type = Int<i>; };
+template <int i, class _> struct Eval_<Int<i>, _> { using type = Int<i>; };
 
-template <bool b, class Env> struct Eval_<Bool<b>, Env> {
-  using type = Bool<b>;
-};
+template <bool b, class _> struct Eval_<Bool<b>, _> { using type = Bool<b>; };
 
 template <int i, class Env> struct Eval_<Var<i>, Env> {
   using type = Lookup_t<Var<i>, Env>;
@@ -147,13 +145,13 @@ template <int i, class Env> struct Eval_<Var<i>, Env> {
 template <class Cond, class IfTrue, class IfFalse, class Env>
 struct Eval_<If<Cond, IfTrue, IfFalse>, Env>;
 
-template <class IfTrue, class IfFalse, class Env>
-struct Eval_<If<True, IfTrue, IfFalse>, Env> {
+template <class IfTrue, class _, class Env>
+struct Eval_<If<True, IfTrue, _>, Env> {
   using type = Eval<IfTrue, Env>;
 };
 
-template <class IfTrue, class IfFalse, class Env>
-struct Eval_<If<False, IfTrue, IfFalse>, Env> {
+template <class _, class IfFalse, class Env>
+struct Eval_<If<False, _, IfFalse>, Env> {
   using type = Eval<IfFalse, Env>;
 };
 
@@ -184,7 +182,7 @@ template <class Car, class Cdr, class Env> struct Eval_<Cons<Car, Cdr>, Env> {
 
 template <class Env> struct Eval_<EmptyList, Env> { using type = EmptyList; };
 
-template <OpCode opcode, class Env> struct Eval_<Op<opcode>, Env> {
+template <OpCode opcode, class _> struct Eval_<Op<opcode>, _> {
   using type = Op<opcode>;
 };
 
@@ -203,8 +201,9 @@ template <int... is> struct Apply_<Op<OpCode::Add>, Int<is>...> {
   using type = Int<(... + is)>;
 };
 
-template <int i1, int ... is> struct Apply_<Op<OpCode::Sub>, Int<i1>, Int<is>...> {
-    using type = Int<i1 - (... + is)>;
+template <int i1, int... is>
+struct Apply_<Op<OpCode::Sub>, Int<i1>, Int<is>...> {
+  using type = Int<i1 - (... + is)>;
 };
 
 template <int i> struct Apply_<Op<OpCode::Sub>, Int<i>> {
