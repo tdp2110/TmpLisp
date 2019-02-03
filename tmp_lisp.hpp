@@ -73,22 +73,23 @@ template <class, class> struct MakeEnv;
 
 template <> struct MakeEnv<List<>, List<>> { using type = EmptyEnv; };
 
+template <class T> using Result_t = typename T::type;
+
 template <class Variable, class... Variables, class Value, class... Values>
 struct MakeEnv<List<Variable, Variables...>, List<Value, Values...>> {
   static_assert(sizeof...(Variables) == sizeof...(Values));
   using InitialEnv = Env<Binding<Variable, Value>>;
-  using FinalEnv = typename MakeEnv<List<Variables...>, List<Values...>>::type;
-  using type = typename Concat<InitialEnv, FinalEnv>::type;
+  using FinalEnv = Result_t<MakeEnv<List<Variables...>, List<Values...>>>;
+  using type = Result_t<Concat<InitialEnv, FinalEnv>>;
 };
 
-template <class T> using Result_t = typename T::type;
 } // namespace detail
 
 template <class Variables, class Values>
-using MakeEnv_t = typename detail::MakeEnv<Variables, Values>::type;
+using MakeEnv_t = detail::Result_t<detail::MakeEnv<Variables, Values>>;
 
 template <class Env1, class Env2>
-using ExtendEnv_t = typename detail::Concat<Env2, Env1>::type;
+using ExtendEnv_t = detail::Result_t<detail::Concat<Env2, Env1>>;
 
 template <int i> using Param = Var<i>;
 
@@ -117,7 +118,7 @@ struct Lookup<Variable, Env<Binding0, Bindings...>> {
 
 template <class Variable, class Env>
 using Lookup_t =
-    typename PushEnv<typename Lookup<Variable, Env>::type, Env>::type;
+    detail::Result_t<PushEnv<detail::Result_t<Lookup<Variable, Env>>, Env>>;
 
 /********************
 APPLY fwd definition
