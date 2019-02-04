@@ -44,8 +44,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 namespace ctll {
 
 template <typename CharT, size_t N> class basic_fixed_string {
+public:
 	CharT content[N];
-public: 
 	using char_type = CharT;
 	
 	template <size_t... I> constexpr basic_fixed_string(const CharT (&input)[N], std::index_sequence<I...>) noexcept: content{input[I]...} { }
