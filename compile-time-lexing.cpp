@@ -92,10 +92,11 @@ template <auto &input, class LexedSoFar> struct Lexer {
                                  matchedWord)>::res,
           decltype(ctll::push_front(std::declval<Word>(),
                                     std::declval<LexedSoFar>()))>::tokens,
-      std::conditional_t<_input.size() == 0, LexedSoFar,
-                         decltype(
-                             ctll::push_front(std::declval<LexError>(),
-                                              std::declval<LexedSoFar>()))>>;
+      LexError>;
+  // std::conditional_t<_input.size() == 0, LexedSoFar,
+  //                    decltype(
+  //                        ctll::push_front(std::declval<LexError>(),
+  //                                         std::declval<LexedSoFar>()))>>;
 };
 
 int main() {
@@ -140,6 +141,11 @@ int main() {
     static_assert(first.size() == 4);
     static_assert(first[0] == ' ');
 
+    static constexpr auto bla =
+        not MatchesWord(std::string_view(first.begin(), first.size()))
+                .has_value();
+    static_assert(bla);
+
     // static_assert(MatchSize(first.begin()) == 0);
     static constexpr auto s = std::string_view(first.begin(), first.size());
 
@@ -149,6 +155,8 @@ int main() {
     // static constexpr auto prefix2 = SliceFirst<str, match2->size()>::res;
 
     using tokens = typename Lexer<str, ctll::empty_list>::tokens;
+
+    // tokens();
   }
 
   return 0;
