@@ -80,12 +80,28 @@ template <> struct MaybeSize<false> {
   static constexpr int Call(std::optional<std::string_view>) { return 0; }
 };
 
+template <bool hasValue, auto &input, class LexedSoFar,
+          template <auto &, class> class Lexer>
+struct Helper {
+  static constexpr auto _input = input;
+
+  static constexpr auto Call(std::optional<std::string_view> matchedWord) {
+    return typename Lexer<
+        SliceFirst<_input, MaybeSize<true>::Call(matchedWord)>::res,
+        decltype(ctll::push_front(std::declval<Word>(),
+                                  std::declval<LexedSoFar>()))>::tokens();
+  }
+};
+
 template <auto &input, class LexedSoFar> struct Lexer {
   static constexpr auto _input = input;
   static constexpr auto matchedWord =
       MatchesWord(std::string_view(_input.begin(), _input.size()));
 
-  using tokens = std::conditional_t<
+  using tokens = decltype(
+      Helper<matchWord.has_value, _input, LexedSoFar, Lexer>::Call(matcheWord));
+
+  using tokens2 = std::conditional_t<
       matchedWord.has_value(),
       typename Lexer<
           SliceFirst<_input, MaybeSize<matchedWord.has_value()>::Call(
