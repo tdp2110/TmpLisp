@@ -188,7 +188,7 @@ template <class Car, class Cdr, class Env> struct Eval_<Cons<Car, Cdr>, Env> {
   using type = Cons<Eval<Car, Env>, Eval<Cdr, Env>>;
 };
 
-template <class Env> struct Eval_<EmptyList, Env> { using type = EmptyList; };
+template <class _> struct Eval_<EmptyList, _> { using type = EmptyList; };
 
 template <OpCode opcode, class _> struct Eval_<Op<opcode>, _> {
   using type = Op<opcode>;
