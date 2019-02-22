@@ -1,5 +1,8 @@
 # TmpLisp
-Attempt at implementing the Scheme dialect of Lisp in C++ Template Metaprogramming (work in progress).
+
+An ad-hoc, informally-specified, bug-ridden, slow implementation of half of the Scheme dialect of Lisp,
+implemented in template metaprogramming.
+
 I'm not the first person to attempt this.
 
 _Requires C++17 and Python3_
