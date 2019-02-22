@@ -34,7 +34,7 @@ a template metaprogram with
 
     using Result = Eval<SExp<Op<OpCode::Add>, Int<1>, Int<2>>, EmptyEnv>;
 
-    typename Result::force_compiler_error eval;
+    Result::force_compiler_error eval;
 
 Notice the straightforward mapping from the Scheme expression to a C++ template expression. Lisp expressions naturally turn into C++ types built out of primitives from tmp_lisp.hpp.
 All lisp values are represented by C++ types.
@@ -45,8 +45,8 @@ will pretty print the (simplified) form of the type alias `Result`:
 
     $ clang++ add.cpp  -std=c++1z
     add.cpp:4:18: error: no type named 'force_compiler_error' in 'Int<3>'
-    typename Result::force_compiler_error eval;
-    ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+    Result::force_compiler_error eval;
+    ~~~~~~~~^~~~~~~~~~~~~~~~~~~~
     1 error generated.
 
 The compiler error shows that `Result` is `Int<3>`.
@@ -82,14 +82,14 @@ clang-format we (currently) get:
                                     Var_n>>>,
                  SExp<Var_fact, Int<10>>>,
              EmptyEnv>;
-    typename Result::force_compiler_error eval;
+    Result::force_compiler_error eval;
 
 Compiling, we get:
 
     ➜  TmpLisp git:(master) ✗ clang++ fact.cpp -std=c++1z
     fact.cpp:15:18: error: no type named 'force_compiler_error' in 'Int<3628800>'
-    typename Result::force_compiler_error eval;
-    ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+    Result::force_compiler_error eval;
+    ~~~~~~~~^~~~~~~~~~~~~~~~~~~~
     1 error generated.
 
 One can indeed verify that 3628800 is the factorial of 10.
@@ -142,13 +142,13 @@ Which computes the factorial of each integer in 1..5. We compile this with `pyth
                       Cons<Int<2>,
                            Cons<Int<3>, Cons<Int<4>, Cons<Int<5>, EmptyList>>>>>>>,
         EmptyEnv>;
-    typename Result::force_compiler_error eval;
+    Result::force_compiler_error eval;
 
 Compiling we get:
 
     $ clang++ mapcar.cpp  -std=c++1z
     mapcar.cpp:28:18: error: no type named 'force_compiler_error' in 'Cons<Int<1>,
     Cons<Int<2>, Cons<Int<6>, Cons<Int<24>, Cons<Int<120>, EmptyList> > > > >'
-    typename Result::force_compiler_error eval;
-    ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+    Result::force_compiler_error eval;
+    ~~~~~~~~^~~~~~~~~~~~~~~~~~~~
     1 error generated.

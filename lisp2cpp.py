@@ -348,7 +348,7 @@ class Lisp2Cpp:
             self._codegen(self.parse)) + ';'
 
         if evaluate:
-            res += '\n\rtypename Result::force_compiler_error eval;'
+            res += '\n\Result::force_compiler_error eval;'
 
         return res
 
