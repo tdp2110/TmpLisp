@@ -1,4 +1,3 @@
-
 #  Restricted Scheme-like Language using Template Metaprogramming
 #
 #  Copyright Thomas D Peters 2018-present
@@ -38,7 +37,6 @@ class Lexer:
 
     def __init__(self, rules, comment_regex=None):
         regex_clauses = []
-        self.converters = {}
         self.type_map = {}
         for idx, (regex, token_type) in enumerate(rules):
             group_name = 'GROUP{}'.format(idx)
@@ -221,7 +219,7 @@ class Parser:
     def _var_exp(self, value):
         self._require(self.integer_regex.match(value) is None)
         return VarExp(value)
-    
+
     def _parse_let(self):
         def parse_bindings():
             res = []
@@ -342,7 +340,7 @@ class Lisp2Cpp:
             res = self._paste_header()
         else:
             res = self.include
-            
+
         res += self._codegen_varlist()
         res += 'using Result = Eval<{}, EmptyEnv>'.format(
             self._codegen(self.parse)) + ';'

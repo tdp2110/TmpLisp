@@ -276,7 +276,7 @@ template <class Car, class Cdr> struct Apply_<Op<OpCode::Cdr>, Cons<Car, Cdr>> {
   using type = Cdr;
 };
 
-template <class Value> struct Apply_<Op<OpCode::IsNull>, Value> {
+template <class _> struct Apply_<Op<OpCode::IsNull>, _> {
   using type = False;
 };
 
