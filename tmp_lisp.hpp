@@ -13,12 +13,12 @@
    Syntax constructions
  *****************/
 
-template <bool b> struct Bool {};
+template <bool> struct Bool {};
 
 using True = Bool<true>;
 using False = Bool<false>;
 
-template <int i> struct Int {};
+template <int> struct Int {};
 
 template <class Car, class Cdr> struct Cons {};
 
@@ -49,9 +49,9 @@ enum class OpCode {
   IsNull
 };
 
-template <OpCode op> struct Op {};
+template <OpCode> struct Op {};
 
-template <int i> struct Var {};
+template <int> struct Var {};
 
 template <class Variable, class Value> struct Binding {};
 

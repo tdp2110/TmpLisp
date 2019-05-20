@@ -23,9 +23,7 @@ LETREC = 'letrec'
 LET = 'let'
 
 
-class Token(namedtuple('Token', ['type', 'value'])):
-    def __str__(self):
-        return 'Token(type={}, value={})'.format(self.type, self.value)
+Token = namedtuple('Token', ['type', 'value'])
 
 
 class Lexer:
