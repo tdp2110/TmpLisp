@@ -9,6 +9,7 @@
 
 import argparse
 from collections import namedtuple
+import enum
 import os
 import re
 
@@ -80,21 +81,12 @@ class Lexer:
         raise self.Error((pos, buf[pos:]))
 
 
-class TokenType:
-    class Quote:
-        pass
-
-    class LParen:
-        pass
-
-    class RParen:
-        pass
-
-    class Comment:
-        pass
-
-    class Identifier:
-        pass
+class TokenType(enum.Enum):
+    Quote = enum.auto()
+    LParen = enum.auto()
+    RParen = enum.auto()
+    Comment = enum.auto()
+    Identifier = enum.auto()
 
 
 lisp_rules = [
@@ -281,7 +273,7 @@ class Parser:
         elif next_tok.type == TokenType.Quote:
             self.tokenizer.pop()
             self._require(self.tokenizer.top().type == TokenType.LParen,
-                         'only know how to parse quoted lists right now')
+                          'only know how to parse quoted lists right now')
             return self._parse_quoted_list()
 
         self._require(False, next_tok)

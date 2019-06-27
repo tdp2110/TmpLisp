@@ -5,7 +5,7 @@ implemented in template metaprogramming.
 
 I'm not the first person to attempt this.
 
-_Requires C++17 and Python3_
+_Requires C++17 and Python3.6+
 
 ## Introduction
 
