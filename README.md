@@ -51,7 +51,7 @@ will pretty print the (simplified) form of the type alias `Result`:
 
 The compiler error shows that `Result` is `Int<3>`.
 
-### Factorial
+### Functions: factorial
 
 Consider the Scheme program fact.scm:
 
@@ -94,7 +94,7 @@ Compiling, we get:
 
 One can indeed verify that 3628800 is the factorial of 10.
 
-### mapcar
+### Higher-order functions: mapcar
 
 Consider mapcar.scm:
 
