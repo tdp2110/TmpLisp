@@ -197,14 +197,13 @@ class Parser:
 
         if identifier in self.ops:
             return OpExp(self.ops[identifier])
-        elif identifier == '#t':
+        if identifier == '#t':
             return True
-        elif identifier == '#f':
+        if identifier == '#f':
             return False
-        elif re.match(self.integer_regex, identifier):
+        if re.match(self.integer_regex, identifier):
             return int(identifier)
-        else:
-            return VarExp(identifier)
+        return VarExp(identifier)
 
     def _var_exp(self, value):
         self._require(self.integer_regex.match(value) is None)
@@ -270,7 +269,7 @@ class Parser:
         next_tok = self.tokenizer.top()
         if next_tok.type == TokenType.Identifier:
             return self._parse_identifier()
-        elif next_tok.type == TokenType.Quote:
+        if next_tok.type == TokenType.Quote:
             self.tokenizer.pop()
             self._require(self.tokenizer.top().type == TokenType.LParen,
                           'only know how to parse quoted lists right now')
@@ -296,10 +295,10 @@ class Parser:
             if identifier == IF:
                 self.tokenizer.pop()
                 return self._parse_if()
-            elif identifier == LAMBDA:
+            if identifier == LAMBDA:
                 self.tokenizer.pop()
                 return self._parse_lambda()
-            elif self._is_let(identifier):
+            if self._is_let(identifier):
                 self.tokenizer.pop()
                 return self._parse_let()
 
@@ -387,37 +386,36 @@ class Lisp2Cpp:
                 params_codegen=','.join(self._codegen(param)
                                         for param in parse.arglist)
             )
-        elif isinstance(parse, LetExp):
+        if isinstance(parse, LetExp):
             return 'Let<{env_codegen}, {body_codegen}>'.format(
                 env_codegen=self._env_codegen(parse.bindings),
                 body_codegen=self._codegen(parse.body))
-        elif isinstance(parse, SExp):
+        if isinstance(parse, SExp):
             return 'SExp<{operator}, {operands_codegen}>'.format(
                 operator=self._codegen(parse.operator),
                 operands_codegen=','.join(self._codegen(operand)
                                           for operand in parse.operands)
             )
-        elif isinstance(parse, IfExp):
+        if isinstance(parse, IfExp):
             return 'If<{cond}, {if_true}, {if_false}>'.format(
                 cond=self._codegen(parse.cond),
                 if_true=self._codegen(parse.if_true),
                 if_false=self._codegen(parse.if_false)
             )
-        elif isinstance(parse, bool):
+        if isinstance(parse, bool):
             return 'Bool<{}>'.format(str(parse).lower())
-        elif isinstance(parse, int):
+        if isinstance(parse, int):
             return 'Int<{}>'.format(parse)
-        elif isinstance(parse, VarExp):
+        if isinstance(parse, VarExp):
             return self._codegen_var(parse.name)
-        elif isinstance(parse, OpExp):
+        if isinstance(parse, OpExp):
             return 'Op<OpCode::{}>'.format(parse.value)
-        elif isinstance(parse, bool):
+        if isinstance(parse, bool):
             return 'Bool<{}>'.format(parse)
-        elif isinstance(parse, ListExp):
+        if isinstance(parse, ListExp):
             return self._codegen_list(parse.values)
-        else:
-            raise self.ConvertError(
-                'don\'t know how to convert {} to CPP'.format(parse))
+        raise self.ConvertError(
+            'don\'t know how to convert {} to CPP'.format(parse))
 
     @staticmethod
     def name_to_cpp(lisp_var_name):
