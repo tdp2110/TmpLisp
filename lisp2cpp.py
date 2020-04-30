@@ -410,8 +410,6 @@ class Lisp2Cpp:
             return self._codegen_var(parse.name)
         if isinstance(parse, OpExp):
             return 'Op<OpCode::{}>'.format(parse.value)
-        if isinstance(parse, bool):
-            return 'Bool<{}>'.format(parse)
         if isinstance(parse, ListExp):
             return self._codegen_list(parse.values)
         raise self.ConvertError(
