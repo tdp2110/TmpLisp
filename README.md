@@ -152,3 +152,5 @@ Compiling we get:
     Result::force_compiler_error eval;
     ~~~~~~~~^~~~~~~~~~~~~~~~~~~~
     1 error generated.
+
+which is our template representation of the list `(1 2 6 24 120)`, ie the application of `fact` to each element of `(1 2 3 4 5)`
