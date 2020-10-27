@@ -36,7 +36,7 @@ a template metaprogram with
 
     Result::force_compiler_error eval;
 
-Notice the straightforward mapping from the Scheme expression to a C++ template expression. Lisp expressions naturally turn into C++ types built out of primitives from tmp_lisp.hpp.
+Notice the straightforward mapping from the Scheme expression to a C++ template expression. At the most basic level, we're just replacing parentheses with angle brackets. Lisp expressions naturally turn into C++ types built out of primitives from tmp_lisp.hpp.
 All lisp values are represented by C++ types.
 The metafunction `Eval` computes an associated type of an expression, its value.
 
