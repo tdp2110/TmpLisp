@@ -154,3 +154,27 @@ Compiling we get:
     1 error generated.
 
 which is our template representation of the list `(1 2 6 24 120)`, ie the application of `fact` to each element of `(1 2 3 4 5)`
+
+### Tests
+
+We have two test suites:
+
+#### C++
+
+Compile with a C++17 compiler, e.g.,
+
+```
+clang++ -std=c++1z test_tmp_lisp.cpp
+```
+
+`test_tmp_lisp.cpp` builds template expressions manually and tests their compile time values with `static_assert`.
+
+
+#### Pure Python
+
+The Python test converts a collection of lisp expressions into template expressions and then checks their values with `static_assert`.
+Python3.6+ is required. Run with 
+
+```
+python lisp2cpp_test.py
+```
