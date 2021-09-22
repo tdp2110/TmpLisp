@@ -11,7 +11,7 @@ _Requires C++17 and Python3.6+_
 
 A functional core of the Scheme Metacircular Evaluator turns out to be fairly easy to implement entirely in C++
 template metaprogramming. This repo attempts to be such an implementation. Mutable state in scheme is not modeled,
-nor are strings for the moment, as they cannot currently be easily used as template parameters, nor are considerably many language features (eg, `define` is not implemented, but `let` expressions are). Even among the implemented features,
+nor are strings for the moment, as they cannot currently be easily used as template parameters, nor are considerably many language features (e.g., `define` is not implemented, but `let` expressions are). Even among the implemented features,
 adherence to the Scheme standard is not implied.
 
 In this implementation, all Scheme values are represented by C++ types. For example, the integer 1 is represented by the type `Int<1>`. The `Eval` function is driven by template specialization, but implements the normal eval/apply dance present in any metacircular evaluator implementation.
@@ -38,7 +38,7 @@ a template metaprogram with
 
 Notice the "straightforward" 🤡 mapping from the Scheme expression to a C++ template expression. At the most basic level, we're just replacing parentheses with angle brackets. Lisp expressions naturally turn into C++ types built out of primitives from tmp_lisp.hpp.
 All lisp values are represented by C++ types.
-The metafunction `Eval` computes an associated type of an expression, its value.
+The metafunction `Eval` computes an associated type of an expression representing its value.
 
 `force_compiler_error` is only present to produce a compiler error in which the compiler
 will pretty print the (simplified) form of the type alias `Result`:
@@ -159,7 +159,7 @@ which is our template representation of the list `(1 2 6 24 120)`, ie the applic
 
 We have two test suites:
 
-#### C++
+#### C++ tests
 
 Compile with a C++17 compiler, e.g.,
 
@@ -170,7 +170,7 @@ clang++ -std=c++1z test_tmp_lisp.cpp
 `test_tmp_lisp.cpp` builds template expressions manually and tests their compile time values with `static_assert`.
 
 
-#### Pure Python
+#### Pure Python tests
 
 The Python test converts a collection of lisp expressions into template expressions and then checks their values with `static_assert`.
 Python3.6+ is required. Run with 
