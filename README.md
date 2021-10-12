@@ -92,7 +92,7 @@ Compiling, we get:
     ~~~~~~~~^~~~~~~~~~~~~~~~~~~~
     1 error generated.
 
-One can indeed verify that 3628800 is the factorial of 10.
+One can [indeed verify](https://www.google.com/search?q=10!&oq=10!) that 3628800 is the factorial of 10.
 
 ### Higher-order functions: mapcar
 
