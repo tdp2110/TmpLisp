@@ -8,11 +8,10 @@
 #  http://www.boost.org/LICENSE_1_0.txt)
 
 import argparse
-from collections import namedtuple
 import enum
 import os
 import re
-
+from collections import namedtuple
 
 LPAREN = "("
 RPAREN = ")"
