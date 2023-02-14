@@ -37,7 +37,7 @@ class TokenizerTest(unittest.TestCase):
         var0 = "var0"
         var1 = "var1"
         var2 = "123abc"
-        expr = "( * {var0}   {var1} {var2}))".format(var0=var0, var1=var1, var2=var2)
+        expr = f"( * {var0}   {var1} {var2}))"
 
         tokens = self.tokenize(expr)
 
@@ -188,7 +188,7 @@ class TokenizerTest(unittest.TestCase):
 
     def test_emptylist_3(self):
         varname = "var"
-        expr = "'({})".format(varname)
+        expr = f"'({varname})"
 
         tokens = self.tokenize(expr)
 
@@ -229,7 +229,7 @@ class ParserTest(unittest.TestCase):
 
     def test_1(self):
         varname = "var"
-        expr = "(* {var} 1)".format(var=varname)
+        expr = f"(* {varname} 1)"
 
         parse = self.parse(expr)
 
@@ -239,7 +239,7 @@ class ParserTest(unittest.TestCase):
 
     def test_lambda(self):
         varname = "x"
-        expr = "(lambda ({varname}) (+ {varname} 1))".format(varname=varname)
+        expr = f"(lambda ({varname}) (+ {varname} 1))"
 
         parse = self.parse(expr)
         expectedBody = SExp(operator=OpExp("Add"), operands=[VarExp(varname), 1])
@@ -271,9 +271,7 @@ class Lisp2CppTest(unittest.TestCase):
         cpp_code = "#include <type_traits>\n\r\n\r"
         cpp_code += Lisp2Cpp(lisp_code).codegen(evaluate=False, include_header=True)
         cpp_code += "\n\r\n\r"
-        cpp_code += "static_assert(std::is_same<Result, {}>::value);".format(
-            expected_result
-        )
+        cpp_code += f"static_assert(std::is_same<Result, {expected_result}>::value);"
 
         self.check_compiles(cpp_code)
 
@@ -320,7 +318,7 @@ class Lisp2CppTest(unittest.TestCase):
 
     def test_codegen_5(self):
         list_exp = "(cons 0 (cons 1 (cons 2 3)))"
-        exp = "(car (cdr (cdr {})))".format(list_exp)
+        exp = f"(car (cdr (cdr {list_exp})))"
 
         self.check_cppeval(exp, "Int<2>")
 
@@ -336,25 +334,25 @@ class Lisp2CppTest(unittest.TestCase):
             return n * fact(n - 1)
 
         for integer in [0, 1, 10]:
-            exp = """(letrec ((fact (lambda (n)
-                                  (if (= 0 n)
-                                      1
-                                      (* n (fact (- n 1)))))))
-                       (fact {}))""".format(
-                integer
+            exp = (
+                "(letrec ((fact (lambda (n)"
+                "               (if (= 0 n)"
+                "                   1"
+                "                   (* n (fact (- n 1)))))))"
+                f"    (fact {integer}))"
             )
 
-            self.check_cppeval(exp, "Int<{}>".format(fact(integer)))
+            self.check_cppeval(exp, f"Int<{fact(integer)}>")
 
     def test_mapcar(self):
         def mapcar_exp(func_exp, list_exp):
-            return """(letrec ((mapcar (lambda (func list)
-                                       (if (null? list)
-                                           '()
-                                           (cons (func (car list)) (mapcar func (cdr list)))
-                                        ))))
-                        (mapcar {func_exp} {list_exp}))""".format(
-                func_exp=func_exp, list_exp=list_exp
+            return (
+                "(letrec ((mapcar (lambda (func list)"
+                "                   (if (null? list)"
+                "                       '()"
+                "                       (cons (func (car list)) (mapcar func (cdr list)))"
+                "                    ))))"
+                f"    (mapcar {func_exp} {list_exp}))"
             )
 
         list_exp = "'(1 2 3)"
@@ -377,12 +375,12 @@ class Lisp2CppTest(unittest.TestCase):
 
     def test_fib(self):
         def fib_exp(n):
-            return """(letrec ((fib (lambda (n)
-                                      (if (<= n 0)
-                                          1
-                                          (+ (fib (- n 1)) (fib (- n 2)))))))
-                         (fib {}))""".format(
-                n
+            return (
+                "(letrec ((fib (lambda (n)"
+                "                  (if (<= n 0)"
+                "                      1"
+                "                      (+ (fib (- n 1)) (fib (- n 2)))))))"
+                f"     (fib {n}))"
             )
 
         def fib_py(n):
@@ -391,7 +389,7 @@ class Lisp2CppTest(unittest.TestCase):
             return fib_py(n - 1) + fib_py(n - 2)
 
         for n in range(10):
-            self.check_cppeval(fib_exp(n), "Int<{}>".format(fib_py(n)))
+            self.check_cppeval(fib_exp(n), f"Int<{fib_py(n)}>")
 
     def test_unary_minus(self):
         self.check_cppeval("(- 1)", "Int<-1>")
