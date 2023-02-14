@@ -14,23 +14,24 @@ import os
 import re
 
 
-LPAREN = '('
-RPAREN = ')'
-QUOTE = '\''
-LAMBDA = 'lambda'
-SEMICOLON = ';'
-IF = 'if'
-LETREC = 'letrec'
-LET = 'let'
+LPAREN = "("
+RPAREN = ")"
+QUOTE = "'"
+LAMBDA = "lambda"
+SEMICOLON = ";"
+IF = "if"
+LETREC = "letrec"
+LET = "let"
 
 
-Token = namedtuple('Token', ['type', 'value'])
+Token = namedtuple("Token", ["type", "value"])
 
 
 class Lexer:
-    '''
+    """
     Approach taken from https://eli.thegreenplace.net/2013/06/25/regex-based-lexical-analysis-in-python-and-javascript/
-    '''
+    """
+
     class Error(Exception):
         pass
 
@@ -38,13 +39,13 @@ class Lexer:
         regex_clauses = []
         self.type_map = {}
         for idx, (regex, token_type) in enumerate(rules):
-            group_name = 'GROUP{}'.format(idx)
-            regex_clauses.append('(?P<{}>{})'.format(group_name, regex))
+            group_name = "GROUP{}".format(idx)
+            regex_clauses.append("(?P<{}>{})".format(group_name, regex))
             self.type_map[group_name] = token_type
 
-        self.regex = re.compile('|'.join(regex_clauses))
+        self.regex = re.compile("|".join(regex_clauses))
 
-        self.skip_whitespace_regex = re.compile(r'\S')
+        self.skip_whitespace_regex = re.compile(r"\S")
         if comment_regex is not None:
             self.comment_regex = re.compile(comment_regex)
 
@@ -90,23 +91,23 @@ class TokenType(enum.Enum):
 
 
 lisp_rules = [
-    (r'\'', TokenType.Quote),
-    (r'\(', TokenType.LParen),
-    (r'\)', TokenType.RParen),
-    (r'[a-zA-Z_0-9\!\-\+\*\?#=<>]+', TokenType.Identifier),
-    (r';[^\n\r]*(?:$|\n|\r)', TokenType.Comment)
+    (r"\'", TokenType.Quote),
+    (r"\(", TokenType.LParen),
+    (r"\)", TokenType.RParen),
+    (r"[a-zA-Z_0-9\!\-\+\*\?#=<>]+", TokenType.Identifier),
+    (r";[^\n\r]*(?:$|\n|\r)", TokenType.Comment),
 ]
 
 lisp_lexer = Lexer(lisp_rules)
 
-SExp = namedtuple('SExp', ['operator', 'operands'])
-LambdaExp = namedtuple('LambdaExp', ['arglist', 'body'])
-IfExp = namedtuple('IfExp', ['cond', 'if_true', 'if_false'])
-Binding = namedtuple('Binding', ['var', 'value'])
-LetExp = namedtuple('LetExp', ['bindings', 'body'])
-VarExp = namedtuple('VarExp', ['name'])
-ListExp = namedtuple('ListExp', ['values'])
-OpExp = namedtuple('OpExp', ['value'])
+SExp = namedtuple("SExp", ["operator", "operands"])
+LambdaExp = namedtuple("LambdaExp", ["arglist", "body"])
+IfExp = namedtuple("IfExp", ["cond", "if_true", "if_false"])
+Binding = namedtuple("Binding", ["var", "value"])
+LetExp = namedtuple("LetExp", ["bindings", "body"])
+VarExp = namedtuple("VarExp", ["name"])
+ListExp = namedtuple("ListExp", ["values"])
+OpExp = namedtuple("OpExp", ["value"])
 
 
 class Parser:
@@ -126,22 +127,24 @@ class Parser:
     class Error(Exception):
         pass
 
-    ops = {'+': 'Add',
-           '-': 'Sub',
-           '*': 'Mul',
-           '=': 'Eq',
-           '<=': 'Leq',
-           'or': 'Or',
-           'and': 'And',
-           'not': 'Not',
-           'cons': 'Cons',
-           'car': 'Car',
-           'cdr': 'Cdr',
-           'null?': 'IsNull'}
+    ops = {
+        "+": "Add",
+        "-": "Sub",
+        "*": "Mul",
+        "=": "Eq",
+        "<=": "Leq",
+        "or": "Or",
+        "and": "And",
+        "not": "Not",
+        "cons": "Cons",
+        "car": "Car",
+        "cdr": "Cdr",
+        "null?": "IsNull",
+    }
 
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
-        self.integer_regex = re.compile(r'^[-+]?[0-9]+$')
+        self.integer_regex = re.compile(r"^[-+]?[0-9]+$")
 
     @classmethod
     def parse(cls, text):
@@ -197,9 +200,9 @@ class Parser:
 
         if identifier in self.ops:
             return OpExp(self.ops[identifier])
-        if identifier == '#t':
+        if identifier == "#t":
             return True
-        if identifier == '#f':
+        if identifier == "#f":
             return False
         if re.match(self.integer_regex, identifier):
             return int(identifier)
@@ -242,9 +245,7 @@ class Parser:
 
         if_false = self._parse_item()
 
-        return IfExp(cond=cond,
-                     if_true=if_true,
-                     if_false=if_false)
+        return IfExp(cond=cond, if_true=if_true, if_false=if_false)
 
     def _parse_lambda(self):
         def parse_arglist():
@@ -261,9 +262,7 @@ class Parser:
         def parse_body():
             return self._parse_item()
 
-        return LambdaExp(
-            arglist=parse_arglist(),
-            body=parse_body())
+        return LambdaExp(arglist=parse_arglist(), body=parse_body())
 
     def _parse_atom(self):
         next_tok = self.tokenizer.top()
@@ -271,8 +270,10 @@ class Parser:
             return self._parse_identifier()
         if next_tok.type == TokenType.Quote:
             self.tokenizer.pop()
-            self._require(self.tokenizer.top().type == TokenType.LParen,
-                          'only know how to parse quoted lists right now')
+            self._require(
+                self.tokenizer.top().type == TokenType.LParen,
+                "only know how to parse quoted lists right now",
+            )
             return self._parse_quoted_list()
 
         self._require(False, next_tok)
@@ -283,7 +284,7 @@ class Parser:
         while self.tokenizer.top().type != TokenType.RParen:
             item = self._parse_atom()
             if isinstance(item, VarExp):
-                raise self.Error('don\'t know how to handle strings yet')
+                raise self.Error("don't know how to handle strings yet")
             values.append(item)
         self._pop_rparen_or_die()
         return ListExp(values=values)
@@ -307,15 +308,14 @@ class Parser:
         while self.tokenizer.top().type != TokenType.RParen:
             operands.append(self._parse_item())
 
-        return SExp(operator=operator,
-                    operands=operands)
+        return SExp(operator=operator, operands=operands)
 
 
 class Lisp2Cpp:
     class ConvertError(Exception):
         pass
 
-    header_name = 'tmp_lisp.hpp'
+    header_name = "tmp_lisp.hpp"
 
     include = '#include "{}"\n\r\n\r'.format(header_name)
 
@@ -331,11 +331,12 @@ class Lisp2Cpp:
             res = self.include
 
         res += self._codegen_varlist()
-        res += 'using Result = Eval<{}, EmptyEnv>'.format(
-            self._codegen(self.parse)) + ';'
+        res += (
+            "using Result = Eval<{}, EmptyEnv>".format(self._codegen(self.parse)) + ";"
+        )
 
         if evaluate:
-            res += '\n\nResult::force_compiler_error eval;'
+            res += "\n\nResult::force_compiler_error eval;"
 
         return res
 
@@ -360,120 +361,128 @@ class Lisp2Cpp:
             cls._compute_varmap(parse.body, varmap)
 
     def _codegen_varlist(self):
-        res = ''
+        res = ""
         for name, ix in self.varmap.items():
-            res += 'using {name_alias} = Var<{ix}>;\n'.format(
-                name_alias=self._codegen_var(name),
-                ix=ix
+            res += "using {name_alias} = Var<{ix}>;\n".format(
+                name_alias=self._codegen_var(name), ix=ix
             )
-        return res + '\n'
+        return res + "\n"
 
     @classmethod
     def _paste_header(cls):
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(dir_path, cls.header_name), 'r') as f:
-            res = '/******************* BEGIN TMP_LISP *************/' + \
-                f.read() +  \
-                '\n\r/********************** END TMP_LISP ***************/' + \
-                '\n\r\n\r'
-            res = res.replace('#pragma once', '')  # such a hack ...
+        with open(os.path.join(dir_path, cls.header_name), "r") as f:
+            res = (
+                "/******************* BEGIN TMP_LISP *************/"
+                + f.read()
+                + "\n\r/********************** END TMP_LISP ***************/"
+                + "\n\r\n\r"
+            )
+            res = res.replace("#pragma once", "")  # such a hack ...
             return res
 
     def _codegen(self, parse):
         if isinstance(parse, LambdaExp):
-            return 'Lambda<{body_codegen}, {params_codegen}>'.format(
+            return "Lambda<{body_codegen}, {params_codegen}>".format(
                 body_codegen=self._codegen(parse.body),
-                params_codegen=','.join(self._codegen(param)
-                                        for param in parse.arglist)
+                params_codegen=",".join(
+                    self._codegen(param) for param in parse.arglist
+                ),
             )
         if isinstance(parse, LetExp):
-            return 'Let<{env_codegen}, {body_codegen}>'.format(
+            return "Let<{env_codegen}, {body_codegen}>".format(
                 env_codegen=self._env_codegen(parse.bindings),
-                body_codegen=self._codegen(parse.body))
+                body_codegen=self._codegen(parse.body),
+            )
         if isinstance(parse, SExp):
-            return 'SExp<{operator}, {operands_codegen}>'.format(
+            return "SExp<{operator}, {operands_codegen}>".format(
                 operator=self._codegen(parse.operator),
-                operands_codegen=','.join(self._codegen(operand)
-                                          for operand in parse.operands)
+                operands_codegen=",".join(
+                    self._codegen(operand) for operand in parse.operands
+                ),
             )
         if isinstance(parse, IfExp):
-            return 'If<{cond}, {if_true}, {if_false}>'.format(
+            return "If<{cond}, {if_true}, {if_false}>".format(
                 cond=self._codegen(parse.cond),
                 if_true=self._codegen(parse.if_true),
-                if_false=self._codegen(parse.if_false)
+                if_false=self._codegen(parse.if_false),
             )
         if isinstance(parse, bool):
-            return 'Bool<{}>'.format(str(parse).lower())
+            return "Bool<{}>".format(str(parse).lower())
         if isinstance(parse, int):
-            return 'Int<{}>'.format(parse)
+            return "Int<{}>".format(parse)
         if isinstance(parse, VarExp):
             return self._codegen_var(parse.name)
         if isinstance(parse, OpExp):
-            return 'Op<OpCode::{}>'.format(parse.value)
+            return "Op<OpCode::{}>".format(parse.value)
         if isinstance(parse, ListExp):
             return self._codegen_list(parse.values)
-        raise self.ConvertError(
-            'don\'t know how to convert {} to CPP'.format(parse))
+        raise self.ConvertError("don't know how to convert {} to CPP".format(parse))
 
     @staticmethod
     def name_to_cpp(lisp_var_name):
-        return re.sub('[^0-9a-zA-Z_\-!\?#]+', '_', lisp_var_name)
+        return re.sub("[^0-9a-zA-Z_\-!\?#]+", "_", lisp_var_name)
 
     def _codegen_list(self, list_values):
         if not list_values:
-            return 'EmptyList'
-        return 'Cons<{}, {}>'.format(self._codegen(list_values[0]),
-                                     self._codegen_list(list_values[1:]))
+            return "EmptyList"
+        return "Cons<{}, {}>".format(
+            self._codegen(list_values[0]), self._codegen_list(list_values[1:])
+        )
 
     def _codegen_var(self, name):
-        return 'Var_{}'.format(self.name_to_cpp(name))
+        return "Var_{}".format(self.name_to_cpp(name))
 
     def _env_codegen(self, bindings):
-        return 'Env<{bindings_codegen}>'.format(
-            bindings_codegen=','.join(
-                'Binding<{var}, {value}>'.format(
-                    var=self._codegen(binding.var),
-                    value=self._codegen(binding.value)
-                ) for binding in bindings
-            ))
+        return "Env<{bindings_codegen}>".format(
+            bindings_codegen=",".join(
+                "Binding<{var}, {value}>".format(
+                    var=self._codegen(binding.var), value=self._codegen(binding.value)
+                )
+                for binding in bindings
+            )
+        )
 
 
 def create_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input',
-                        '-i',
-                        help='pass lisp on the command line',
-                        type=str,
-                        default=None)
-    parser.add_argument('--file',
-                        '-f',
-                        help='read lisp from file',
-                        type=str,
-                        default=None)
-    parser.add_argument('--eval',
-                        '-e',
-                        help='evaluate the expression by asking for a non-existent member type alias',
-                        action='store_true')
-    parser.add_argument('--include-header',
-                        help='instead of having and include line, paste the entire header include',
-                        action='store_true')
+    parser.add_argument(
+        "--input", "-i", help="pass lisp on the command line", type=str, default=None
+    )
+    parser.add_argument(
+        "--file", "-f", help="read lisp from file", type=str, default=None
+    )
+    parser.add_argument(
+        "--eval",
+        "-e",
+        help="evaluate the expression by asking for a non-existent member type alias",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--include-header",
+        help="instead of having and include line, paste the entire header include",
+        action="store_true",
+    )
     return parser
 
 
 def main(args):
-    lisp_str = ''
+    lisp_str = ""
     if args.input:
         lisp_str = args.input
     elif args.file:
-        with open(args.file, 'r') as f:
+        with open(args.file, "r") as f:
             lisp_str = f.read()
 
     if not lisp_str:
         return
 
-    print(Lisp2Cpp(lisp_str).codegen(evaluate=args.eval,
-                                     include_header=args.include_header))
+    print(
+        Lisp2Cpp(lisp_str).codegen(
+            evaluate=args.eval, include_header=args.include_header
+        )
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(create_parser().parse_args())
