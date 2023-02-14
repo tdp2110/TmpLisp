@@ -2,7 +2,22 @@ from subprocess import Popen, PIPE
 from tempfile import TemporaryDirectory
 import unittest
 
-from lisp2cpp import *
+import os
+
+from lisp2cpp import (
+    TokenType,
+    lisp_lexer,
+    QUOTE,
+    LPAREN,
+    LAMBDA,
+    RPAREN,
+    Parser,
+    Lisp2Cpp,
+    SExp,
+    VarExp,
+    OpExp,
+    LambdaExp,
+)
 
 
 class TokenizerTest(unittest.TestCase):
