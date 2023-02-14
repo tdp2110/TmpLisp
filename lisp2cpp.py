@@ -360,11 +360,10 @@ class Lisp2Cpp:
             cls._compute_varmap(parse.body, varmap)
 
     def _codegen_varlist(self):
-        res = ""
-        for name, ix in self.varmap.items():
-            name_alias = self._codegen_var(name)
-            res += f"using {name_alias} = Var<{ix}>;\n"
-        return res + "\n"
+        return "".join(
+            f"using {self._codegen_var(name)} = Var<{ix}>;\n"
+            for name, ix in self.varmap.items()
+        )
 
     @classmethod
     def _paste_header(cls):
