@@ -1,22 +1,21 @@
-from subprocess import Popen, PIPE
-from tempfile import TemporaryDirectory
 import unittest
-
 from pathlib import Path
+from subprocess import PIPE, Popen
+from tempfile import TemporaryDirectory
 
 from lisp2cpp import (
-    TokenType,
-    lisp_lexer,
-    QUOTE,
-    LPAREN,
     LAMBDA,
+    LPAREN,
+    QUOTE,
     RPAREN,
-    Parser,
-    Lisp2Cpp,
-    SExp,
-    VarExp,
-    OpExp,
     LambdaExp,
+    Lisp2Cpp,
+    OpExp,
+    Parser,
+    SExp,
+    TokenType,
+    VarExp,
+    lisp_lexer,
 )
 
 
