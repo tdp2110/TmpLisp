@@ -262,17 +262,12 @@ class Lisp2CppTest(unittest.TestCase):
         self.check_compiles(cpp_code)
 
     def check_compiles(self, code):
-        codegen_process = Popen(["echo", code], stdout=PIPE)
-        compile_process = Popen(
+        with Popen(["echo", code], stdout=PIPE) as codegen_process, Popen(
             ["c++", "-xc++", "-std=c++1z", "-", "-c", "-o", self.compiler_outfile],
             stdin=codegen_process.stdout,
             stdout=PIPE,
-        )
-        codegen_process.stdout.close()
-        out, err = compile_process.communicate()
-
-        codegen_process.wait()
-        compile_process.wait()
+        ) as compile_process:
+            out, err = compile_process.communicate()
 
         self.assertEqual(compile_process.returncode, 0, (out, err))
 
