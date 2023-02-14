@@ -360,8 +360,8 @@ class Lisp2Cpp:
             cls._compute_varmap(parse.body, varmap)
 
     def _codegen_varlist(self):
-        return "".join(
-            f"using {self._codegen_var(name)} = Var<{ix}>;\n"
+        return "\n".join(
+            f"using {self._codegen_var(name)} = Var<{ix}>;"
             for name, ix in self.varmap.items()
         )
 
