@@ -39,8 +39,8 @@ class Lexer:
         regex_clauses = []
         self.type_map = {}
         for idx, (regex, token_type) in enumerate(rules):
-            group_name = "GROUP{}".format(idx)
-            regex_clauses.append("(?P<{}>{})".format(group_name, regex))
+            group_name = f"GROUP{idx}"
+            regex_clauses.append(f"(?P<{group_name}>{regex})")
             self.type_map[group_name] = token_type
 
         self.regex = re.compile("|".join(regex_clauses))
@@ -317,7 +317,7 @@ class Lisp2Cpp:
 
     header_name = "tmp_lisp.hpp"
 
-    include = '#include "{}"\n\r\n\r'.format(header_name)
+    include = f'#include "{header_name}"\n\r\n\r'
 
     def __init__(self, text):
         self.parse = Parser.parse(text)
@@ -331,9 +331,8 @@ class Lisp2Cpp:
             res = self.include
 
         res += self._codegen_varlist()
-        res += (
-            "using Result = Eval<{}, EmptyEnv>".format(self._codegen(self.parse)) + ";"
-        )
+        to_eval = self._codegen(self.parse)
+        res += f"using Result = Eval<{to_eval}, EmptyEnv>;"
 
         if evaluate:
             res += "\n\nResult::force_compiler_error eval;"
@@ -363,9 +362,8 @@ class Lisp2Cpp:
     def _codegen_varlist(self):
         res = ""
         for name, ix in self.varmap.items():
-            res += "using {name_alias} = Var<{ix}>;\n".format(
-                name_alias=self._codegen_var(name), ix=ix
-            )
+            name_alias = self._codegen_var(name)
+            res += f"using {name_alias} = Var<{ix}>;\n"
         return res + "\n"
 
     @classmethod
@@ -383,41 +381,35 @@ class Lisp2Cpp:
 
     def _codegen(self, parse):
         if isinstance(parse, LambdaExp):
-            return "Lambda<{body_codegen}, {params_codegen}>".format(
-                body_codegen=self._codegen(parse.body),
-                params_codegen=",".join(
-                    self._codegen(param) for param in parse.arglist
-                ),
-            )
+            body_codegen = self._codegen(parse.body)
+            params_codegen = ",".join(self._codegen(param) for param in parse.arglist)
+            return f"Lambda<{body_codegen}, {params_codegen}>"
         if isinstance(parse, LetExp):
-            return "Let<{env_codegen}, {body_codegen}>".format(
-                env_codegen=self._env_codegen(parse.bindings),
-                body_codegen=self._codegen(parse.body),
-            )
+            env_codegen = self._env_codegen(parse.bindings)
+            body_codegen = self._codegen(parse.body)
+            return f"Let<{env_codegen}, {body_codegen}>"
         if isinstance(parse, SExp):
-            return "SExp<{operator}, {operands_codegen}>".format(
-                operator=self._codegen(parse.operator),
-                operands_codegen=",".join(
-                    self._codegen(operand) for operand in parse.operands
-                ),
+            operator = self._codegen(parse.operator)
+            operands_codegen = ",".join(
+                self._codegen(operand) for operand in parse.operands
             )
+            return f"SExp<{operator}, {operands_codegen}>"
         if isinstance(parse, IfExp):
-            return "If<{cond}, {if_true}, {if_false}>".format(
-                cond=self._codegen(parse.cond),
-                if_true=self._codegen(parse.if_true),
-                if_false=self._codegen(parse.if_false),
-            )
+            cond = self._codegen(parse.cond)
+            if_true = self._codegen(parse.if_true)
+            if_false = self._codegen(parse.if_false)
+            return f"If<{cond}, {if_true}, {if_false}>"
         if isinstance(parse, bool):
-            return "Bool<{}>".format(str(parse).lower())
+            return f"Bool<{str(parse).lower()}>"
         if isinstance(parse, int):
-            return "Int<{}>".format(parse)
+            return f"Int<{parse}>"
         if isinstance(parse, VarExp):
             return self._codegen_var(parse.name)
         if isinstance(parse, OpExp):
-            return "Op<OpCode::{}>".format(parse.value)
+            return f"Op<OpCode::{parse.value}>"
         if isinstance(parse, ListExp):
             return self._codegen_list(parse.values)
-        raise self.ConvertError("don't know how to convert {} to CPP".format(parse))
+        raise self.ConvertError(f"don't know how to convert {parse} to CPP")
 
     @staticmethod
     def name_to_cpp(lisp_var_name):
@@ -426,22 +418,19 @@ class Lisp2Cpp:
     def _codegen_list(self, list_values):
         if not list_values:
             return "EmptyList"
-        return "Cons<{}, {}>".format(
-            self._codegen(list_values[0]), self._codegen_list(list_values[1:])
-        )
+        head = self._codegen(list_values[0])
+        tail = self._codegen_list(list_values[1:])
+        return f"Cons<{head}, {tail}>"
 
     def _codegen_var(self, name):
-        return "Var_{}".format(self.name_to_cpp(name))
+        return f"Var_{self.name_to_cpp(name)}"
 
     def _env_codegen(self, bindings):
-        return "Env<{bindings_codegen}>".format(
-            bindings_codegen=",".join(
-                "Binding<{var}, {value}>".format(
-                    var=self._codegen(binding.var), value=self._codegen(binding.value)
-                )
-                for binding in bindings
-            )
+        bindings_codegen = ",".join(
+            f"Binding<{self._codegen(binding.var)}, {self._codegen(binding.value)}>".format()
+            for binding in bindings
         )
+        return f"Env<{bindings_codegen}>"
 
 
 def create_parser():
