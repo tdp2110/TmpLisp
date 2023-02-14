@@ -2,7 +2,7 @@ from subprocess import Popen, PIPE
 from tempfile import TemporaryDirectory
 import unittest
 
-import os
+from pathlib import Path
 
 from lisp2cpp import (
     TokenType,
@@ -253,6 +253,7 @@ class Lisp2CppTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.temp_dir = TemporaryDirectory()
+        cls.temp_dir_name = Path(cls.temp_dir.name)
 
     @classmethod
     def tearDownClass(cls):
@@ -264,7 +265,7 @@ class Lisp2CppTest(unittest.TestCase):
 
     @property
     def compiler_outfile(self):
-        return os.path.join(self.temp_dir.name, "a.out")
+        return self.temp_dir_name / "a.out"
 
     def check_cppeval(self, lisp_code, expected_result):
         cpp_code = "#include <type_traits>\n\r\n\r"
