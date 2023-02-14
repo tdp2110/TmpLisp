@@ -282,6 +282,7 @@ class Lisp2CppTest(unittest.TestCase):
             ["c++", "-xc++", "-std=c++1z", "-", "-c", "-o", self.compiler_outfile],
             stdin=codegen_process.stdout,
             stdout=PIPE,
+            stderr=PIPE,
         ) as compile_process:
             out, err = compile_process.communicate()
 
