@@ -413,7 +413,7 @@ class Lisp2Cpp:
 
     @staticmethod
     def name_to_cpp(lisp_var_name):
-        return re.sub("[^0-9a-zA-Z_\-!\?#]+", "_", lisp_var_name)
+        return re.sub(r"[^0-9a-zA-Z_\-!\?#]+", "_", lisp_var_name)
 
     def _codegen_list(self, list_values):
         if not list_values:
