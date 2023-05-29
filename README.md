@@ -30,11 +30,13 @@ a template metaprogram with
 
 (*note*: Python 3 is required). This gives
 
-    #include "tmp_lisp.hpp"
+```c++
+#include "tmp_lisp.hpp"
 
-    using Result = Eval<SExp<Op<OpCode::Add>, Int<1>, Int<2>>, EmptyEnv>;
+using Result = Eval<SExp<Op<OpCode::Add>, Int<1>, Int<2>>, EmptyEnv>;
 
-    Result::force_compiler_error eval;
+Result::force_compiler_error eval;
+```
 
 Notice the "straightforward" 🤡 mapping from the Scheme expression to a C++ template expression. At the most basic level, we're just replacing parentheses with angle brackets. Lisp expressions naturally turn into C++ types built out of primitives from tmp_lisp.hpp.
 All lisp values are represented by C++ types.
@@ -55,11 +57,13 @@ The compiler error shows that `Result` is `Int<3>`.
 
 Consider the Scheme program fact.scm:
 
-    (letrec ((fact (lambda (n)
-                  (if (= 0 n)
-                      1
-                      (* n (fact (- n 1)))))))
-      (fact 10))
+```scheme
+(letrec ((fact (lambda (n)
+              (if (= 0 n)
+                  1
+                  (* n (fact (- n 1)))))))
+  (fact 10))
+```
 
 which computes the factorial of 10. We can compile this to a C++ template metaprogram using
 
@@ -68,21 +72,23 @@ which computes the factorial of 10. We can compile this to a C++ template metapr
 This writes a template metaprogram to the console, and passing through
 clang-format we (currently) get:
 
-    #include "tmp_lisp.hpp"
+```C++
+#include "tmp_lisp.hpp"
 
-    using Var_fact = Var<0>;
-    using Var_n = Var<1>;
+using Var_fact = Var<0>;
+using Var_n = Var<1>;
 
-    using Result =
-        Eval<Let<Env<Binding<Var_fact,
-                             Lambda<If<SExp<Op<OpCode::Eq>, Int<0>, Var_n>, Int<1>,
-                                       SExp<Op<OpCode::Mul>, Var_n,
-                                            SExp<Var_fact, SExp<Op<OpCode::Sub>,
-                                                              Var_n, Int<1>>>>>,
-                                    Var_n>>>,
-                 SExp<Var_fact, Int<10>>>,
-             EmptyEnv>;
-    Result::force_compiler_error eval;
+using Result =
+    Eval<Let<Env<Binding<Var_fact,
+                         Lambda<If<SExp<Op<OpCode::Eq>, Int<0>, Var_n>, Int<1>,
+                                   SExp<Op<OpCode::Mul>, Var_n,
+                                        SExp<Var_fact, SExp<Op<OpCode::Sub>,
+                                                          Var_n, Int<1>>>>>,
+                                Var_n>>>,
+             SExp<Var_fact, Int<10>>>,
+         EmptyEnv>;
+Result::force_compiler_error eval;
+```
 
 Compiling, we get:
 
@@ -98,51 +104,54 @@ One can [indeed verify](https://www.google.com/search?q=10!&oq=10!) that 3628800
 
 Consider mapcar.scm:
 
-    (letrec ((fact (lambda (n)
-                     (if (= 0 n)
-                         1
-                         (* n (fact (- n 1)))
-                         )
-                     ))
-             (mapcar (lambda (f list)
-                       (if (null? list)
-                           '()
-                           (cons (f (car list))
-                                 (mapcar f (cdr list)))
-                           )))
-             )
-         (mapcar fact '(1 2 3 4 5)))
-
+```scheme
+(letrec ((fact (lambda (n)
+                 (if (= 0 n)
+                     1
+                     (* n (fact (- n 1)))
+                     )
+                 ))
+         (mapcar (lambda (f list)
+                   (if (null? list)
+                       '()
+                       (cons (f (car list))
+                             (mapcar f (cdr list)))
+                       )))
+         )
+     (mapcar fact '(1 2 3 4 5)))
+```
 Which computes the factorial of each integer in 1..5. We compile this with `python lisp2cpp.py -e -f factorial.scm` and passing through `clang-format` we get
 
-    #include "tmp_lisp.hpp"
+```C++
+#include "tmp_lisp.hpp"
 
-    using Var_fact = Var<0>;
-    using Var_n = Var<1>;
-    using Var_mapcar = Var<2>;
-    using Var_f = Var<3>;
-    using Var_list = Var<4>;
+using Var_fact = Var<0>;
+using Var_n = Var<1>;
+using Var_mapcar = Var<2>;
+using Var_f = Var<3>;
+using Var_list = Var<4>;
 
-    using Result = Eval<
-        Let<Env<Binding<Var_fact,
-                        Lambda<If<SExp<Op<OpCode::Eq>, Int<0>, Var_n>, Int<1>,
-                                  SExp<Op<OpCode::Mul>, Var_n,
-                                       SExp<Var_fact,
-                                            SExp<Op<OpCode::Sub>, Var_n, Int<1>>>>>,
-                               Var_n>>,
-                Binding<Var_mapcar,
-                        Lambda<If<SExp<Op<OpCode::IsNull>, Var_list>, EmptyList,
-                                  SExp<Op<OpCode::Cons>,
-                                       SExp<Var_f, SExp<Op<OpCode::Car>, Var_list>>,
-                                       SExp<Var_mapcar, Var_f,
-                                            SExp<Op<OpCode::Cdr>, Var_list>>>>,
-                               Var_f, Var_list>>>,
-            SExp<Var_mapcar, Var_fact,
-                 Cons<Int<1>,
-                      Cons<Int<2>,
-                           Cons<Int<3>, Cons<Int<4>, Cons<Int<5>, EmptyList>>>>>>>,
-        EmptyEnv>;
-    Result::force_compiler_error eval;
+using Result = Eval<
+    Let<Env<Binding<Var_fact,
+                    Lambda<If<SExp<Op<OpCode::Eq>, Int<0>, Var_n>, Int<1>,
+                              SExp<Op<OpCode::Mul>, Var_n,
+                                   SExp<Var_fact,
+                                        SExp<Op<OpCode::Sub>, Var_n, Int<1>>>>>,
+                           Var_n>>,
+            Binding<Var_mapcar,
+                    Lambda<If<SExp<Op<OpCode::IsNull>, Var_list>, EmptyList,
+                              SExp<Op<OpCode::Cons>,
+                                   SExp<Var_f, SExp<Op<OpCode::Car>, Var_list>>,
+                                   SExp<Var_mapcar, Var_f,
+                                        SExp<Op<OpCode::Cdr>, Var_list>>>>,
+                           Var_f, Var_list>>>,
+        SExp<Var_mapcar, Var_fact,
+             Cons<Int<1>,
+                  Cons<Int<2>,
+                       Cons<Int<3>, Cons<Int<4>, Cons<Int<5>, EmptyList>>>>>>>,
+    EmptyEnv>;
+Result::force_compiler_error eval;
+```
 
 Compiling we get:
 
